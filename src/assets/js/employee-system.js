@@ -315,14 +315,14 @@ export class EmployeeFormManager {
             <!-- Role Name -->
             <div class="col-md-6">
               <label class="form-label fw-medium text-dark">Role Name / Designation <span class="text-danger">*</span></label>
-              <input type="text" class="form-control exp-role" placeholder="e.g. Senior Software Engineer" pattern="[A-Za-z\s\.]+" oninput="this.value = this.value.replace(/[^A-Za-z\s\.]/g, '')" required value="${data.role_name || ''}">
-              <div class="invalid-feedback">Role name must contain letters and spaces only (no numbers).</div>
+              <input type="text" class="form-control exp-role" placeholder="e.g. Senior Software Engineer" pattern="[A-Za-z0-9 .\-&/,()']+" required value="${data.role_name || ''}">
+              <div class="invalid-feedback">Please enter a valid role name / designation.</div>
             </div>
             <!-- Company Name -->
             <div class="col-md-6">
               <label class="form-label fw-medium text-dark">Company Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control exp-company" placeholder="e.g. Acme Corporation" pattern="[A-Za-z\s\.]+" oninput="this.value = this.value.replace(/[^A-Za-z\s\.]/g, '')" required value="${data.company_name || ''}">
-              <div class="invalid-feedback">Company name must contain letters and spaces only (no numbers).</div>
+              <input type="text" class="form-control exp-company" placeholder="e.g. Acme Corporation" pattern="[A-Za-z0-9 .\-&/,()']+" required value="${data.company_name || ''}">
+              <div class="invalid-feedback">Please enter a valid company name.</div>
             </div>
             <!-- Company Address -->
             <div class="col-12">
@@ -462,26 +462,24 @@ export class EmployeeFormManager {
     endDateInput.addEventListener('change', updateDuration);
     currentCheck.addEventListener('change', updateDuration);
 
-    // Role Name: letters and spaces only
+    // Role Name: letters, numbers, spaces, and standard characters
     const roleInput = card.querySelector('.exp-role');
     if (roleInput) {
       roleInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/[^A-Za-z\s\.]/g, '');
-        if (e.target.value.trim().length >= 2) {
+        e.target.value = e.target.value.replace(/[^A-Za-z0-9\s\.\-\&\/\,\(\)\']/g, '');
+        if (e.target.value.trim().length >= 1) {
           e.target.classList.remove('is-invalid');
-          e.target.classList.add('is-valid');
         }
       });
     }
 
-    // Company Name: letters and spaces only
+    // Company Name: letters, numbers, spaces, and standard characters
     const companyInput = card.querySelector('.exp-company');
     if (companyInput) {
       companyInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/[^A-Za-z\s\.]/g, '');
-        if (e.target.value.trim().length >= 2) {
+        e.target.value = e.target.value.replace(/[^A-Za-z0-9\s\.\-\&\/\,\(\)\']/g, '');
+        if (e.target.value.trim().length >= 1) {
           e.target.classList.remove('is-invalid');
-          e.target.classList.add('is-valid');
         }
       });
     }
@@ -497,7 +495,6 @@ export class EmployeeFormManager {
       annualDisplay.innerHTML = `${formatCurrency(annual)} <span class="fs-6 fw-normal text-white-50">/ year</span>`;
       if (val > 0) {
         monthlyInput.classList.remove('is-invalid');
-        monthlyInput.classList.add('is-valid');
       }
     };
 
@@ -574,7 +571,7 @@ export class EmployeeFormManager {
       isValid = false;
       errorMsg = errorMsg || 'Full Name must contain letters and spaces only (no numbers or special characters).';
     } else {
-      if (nameElem) nameElem.classList.add('is-valid');
+      if (nameElem) nameElem.classList.remove('is-invalid');
     }
 
     if (!codeVal || codeVal.length < 2) {
@@ -582,7 +579,7 @@ export class EmployeeFormManager {
       isValid = false;
       errorMsg = errorMsg || 'Please enter a valid Employee Code (e.g. EMP-2026).';
     } else {
-      if (codeElem) codeElem.classList.add('is-valid');
+      if (codeElem) codeElem.classList.remove('is-invalid');
     }
 
     if (!mobileVal || !mobileRegex.test(mobileVal)) {
@@ -590,7 +587,7 @@ export class EmployeeFormManager {
       isValid = false;
       errorMsg = errorMsg || 'Mobile Number must contain exactly 10 numeric digits (numbers only).';
     } else {
-      if (mobileElem) mobileElem.classList.add('is-valid');
+      if (mobileElem) mobileElem.classList.remove('is-invalid');
     }
 
     if (!emailVal || !emailRegex.test(emailVal)) {
@@ -598,7 +595,7 @@ export class EmployeeFormManager {
       isValid = false;
       errorMsg = errorMsg || 'Please enter a valid Email Address (e.g. jane.doe@company.com).';
     } else {
-      if (emailElem) emailElem.classList.add('is-valid');
+      if (emailElem) emailElem.classList.remove('is-invalid');
     }
 
     if (!isValid) {
@@ -648,25 +645,25 @@ export class EmployeeFormManager {
       let salary_slip_name = nameElem ? nameElem.value : '';
       const remarks = remElem ? remElem.value.trim() : '';
 
-      const nameRegex = /^[A-Za-z\s\.]+$/;
+      const roleCompanyRegex = /^[A-Za-z0-9\s\.\-\&\/\,\(\)\']+$/;
 
-      // Validate Role Name (Letters & Spaces Only)
-      if (!role_name || !nameRegex.test(role_name)) {
+      // Validate Role Name
+      if (!role_name || !roleCompanyRegex.test(role_name)) {
         if (roleElem) roleElem.classList.add('is-invalid');
-        expValidationError = expValidationError || `Role Name in Experience #${index + 1} must contain letters and spaces only (no numbers).`;
-      } else if (roleElem) roleElem.classList.add('is-valid');
+        expValidationError = expValidationError || `Please enter a valid Role Name in Experience #${index + 1}.`;
+      } else if (roleElem) roleElem.classList.remove('is-invalid');
 
-      // Validate Company Name (Letters & Spaces Only)
-      if (!company_name || !nameRegex.test(company_name)) {
+      // Validate Company Name
+      if (!company_name || !roleCompanyRegex.test(company_name)) {
         if (compElem) compElem.classList.add('is-invalid');
-        expValidationError = expValidationError || `Company Name in Experience #${index + 1} must contain letters and spaces only (no numbers).`;
-      } else if (compElem) compElem.classList.add('is-valid');
+        expValidationError = expValidationError || `Please enter a valid Company Name in Experience #${index + 1}.`;
+      } else if (compElem) compElem.classList.remove('is-invalid');
 
       // Validate Start Date
       if (!start_date) {
         if (startElem) startElem.classList.add('is-invalid');
         expValidationError = expValidationError || `Please select Start Date for Experience #${index + 1}.`;
-      } else if (startElem) startElem.classList.add('is-valid');
+      } else if (startElem) startElem.classList.remove('is-invalid');
 
       // Validate End Date vs Start Date
       if (!is_current) {
@@ -676,14 +673,14 @@ export class EmployeeFormManager {
         } else if (start_date && new Date(end_date) < new Date(start_date)) {
           if (endElem) endElem.classList.add('is-invalid');
           expValidationError = expValidationError || `End Date cannot be earlier than Start Date in Experience #${index + 1}.`;
-        } else if (endElem) endElem.classList.add('is-valid');
+        } else if (endElem) endElem.classList.remove('is-invalid');
       }
 
       // Validate Monthly Salary (> 0)
       if (isNaN(monthly_salary) || monthly_salary <= 0) {
         if (salElem) salElem.classList.add('is-invalid');
         expValidationError = expValidationError || `Please enter a valid Monthly Salary (> ₹0) for Experience #${index + 1}.`;
-      } else if (salElem) salElem.classList.add('is-valid');
+      } else if (salElem) salElem.classList.remove('is-invalid');
 
       // Validate Compulsory Salary Slip Document
       const fileInput = card.querySelector('.exp-salary-slip-file');

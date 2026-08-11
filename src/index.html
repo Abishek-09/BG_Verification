@@ -716,8 +716,8 @@
                         <label for="emp-name" class="form-label fw-medium text-dark">Full Name <span
                             class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg" id="emp-name"
-                          placeholder="e.g. Jane Doe" pattern="[A-Za-z\s\.]+"
-                          oninput="this.value = this.value.replace(/[^A-Za-z\s\.]/g, '')" required>
+                          placeholder="e.g. Jane Doe" pattern="[A-Za-z .\-']+"
+                          oninput="this.value = this.value.replace(/[^A-Za-z \s\.\-\']/g, '')" required>
                         <div class="invalid-feedback">Full name must contain letters and spaces only (no numbers).</div>
                       </div>
                       <div class="col-md-6">

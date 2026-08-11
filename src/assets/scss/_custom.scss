@@ -343,3 +343,11 @@ footer.bg-dark {
   }
 }
 
+/* Remove tick / checkmark icon on valid form inputs */
+.form-control.is-valid,
+.form-select.is-valid,
+.was-validated .form-control:valid,
+.was-validated .form-select:valid {
+  background-image: none !important;
+  padding-right: 0.75rem !important;
+}
