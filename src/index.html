@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>BG Verification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Preconnect & Load Google Fonts in parallel for zero delay -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet">
+
+  <!-- Direct Stylesheet Link in head (Eliminates CSS refresh delay & Flash of Unstyled Content) -->
+  <link rel="stylesheet" href="./assets/scss/style.scss">
+  <!-- SweetAlert2 Sweet Box Dialog Library -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- JavaScript Module -->
+  <script type="module" src="./assets/js/main.js"></script>
+</head>
+
+<body>
+  <!-- Navbar Start -->
+  <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+    <div class="container-fluid px-3 px-md-5">
+      <a class="navbar-brand d-inline-flex gap-2 align-items-center lh-1" href="index.html">
+        <span class="text-primary">
+          <i class="ti ti-shield-check fs-2 text-primary"></i>
+        </span>
+        <span class="fw-bold fs-4 text-dark">Verification</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="d-flex gap-2 align-items-center ms-auto">
+          <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-medium" data-bs-toggle="modal"
+            data-bs-target="#signInModal">
+            <i class="ti ti-login me-1"></i> Sign In
+          </button>
+          <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-bold" data-bs-toggle="modal"
+            data-bs-target="#signUpModal">
+            <i class="ti ti-user-plus me-1"></i> Sign Up
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Employee Management Portal Section -->
+  <section class="py-5 bg-light-subtle position-relative border-bottom min-vh-100" id="employee-portal">
+    <div class="container-xxl px-4 px-md-5">
+      <div class="text-center max-w-3xl mx-auto main-title-header">
+        <h2 class="display-6 fw-bold text-dark mb-3">Employee Demographics, Compensation & QR Barcode System</h2>
+        <p class="text-dark fw-medium fs-5 fst-italic leading-relaxed mt-2 mb-0">
+          “Trust is built on transparency and verified data. Simplify workforce records with scannable barcode
+          security.”
+        </p>
+      </div>
+
+      <!-- 1. Unified Single Field Card Dashboard View -->
+      <div id="dashboard-card-section" class="mb-5">
+        <div
+          class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 p-md-5 transition-all hover-shadow">
+          <div class="row g-4 align-items-stretch">
+
+            <!-- Left / Middle Section: Action 1 (New Barcode) & Action 2 (Existing Barcode) -->
+            <div class="col-lg-7 col-md-12 border-end-lg pe-lg-4 d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span
+                    class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold">
+                    <i class="ti ti-dashboard me-1"></i> Verification Dashboard
+                  </span>
+                  <span class="text-muted small">Choose an action below to proceed</span>
+                </div>
+
+                <!-- Action 1: New Barcode Generate -->
+                <div class="p-4 p-md-4.5 mb-4 rounded-3 border border-light-subtle bg-light-subtle transition-all">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <div
+                        class="avatar bg-primary-subtle text-primary rounded-3 d-flex align-items-center justify-content-center p-2"
+                        style="width: 44px; height: 44px;">
+                        <i class="ti ti-qrcode fs-4"></i>
+                      </div>
+                      <h5 class="fw-bold text-dark mb-0"> New Barcode Generate</h5>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary fw-medium px-3 py-1.5 rounded-pill text-xs">NEW
+                      GENERATION</span>
+                  </div>
+                  <p class="text-muted small mb-3.5 leading-relaxed">
+                    Fill employee demographics, enter multi-employment history, auto-calculate annual salary in ₹,
+                    attach salary slips, and generate a scannable 1D Barcode Pass.
+                  </p>
+                  <button type="button" class="btn btn-outline-primary w-100 py-3 px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+                    id="dashboard-btn-generate">
+                    <i class="ti ti-plus me-1"></i> Open Barcode Generator Form <i class="ti ti-arrow-right ms-1"></i>
+                  </button>
+                </div>
+
+                <!-- Action 2: Import Existing Barcode -->
+                <div class="p-4 p-md-4.5 rounded-3 border border-light-subtle bg-light-subtle transition-all">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <div
+                        class="avatar bg-info-subtle text-info rounded-3 d-flex align-items-center justify-content-center p-2"
+                        style="width: 44px; height: 44px;">
+                        <i class="ti ti-scan fs-4"></i>
+                      </div>
+                      <h5 class="fw-bold text-dark mb-0"> Import Existing Barcode</h5>
+                    </div>
+                    <span class="badge bg-info-subtle text-info fw-medium px-3 py-1.5 rounded-pill text-xs">SCAN &
+                      LOOKUP</span>
+                  </div>
+                  <p class="text-muted small mb-3.5 leading-relaxed">
+                    Scan camera/webcam barcodes, upload barcode image files, search employee codes, or browse the
+                    registered employee database directory.
+                  </p>
+                  <button type="button" class="btn btn-outline-primary w-100 py-3 px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+                    id="dashboard-btn-import">
+                    <i class="ti ti-search me-1"></i> Open Scanner & Database <i class="ti ti-arrow-right ms-1"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Handside Section: Interactive Example Barcode Card with Save, Download & Copy Buttons -->
+            <div class="col-lg-5 col-md-12 ps-lg-4 mt-4 mt-lg-0 d-flex flex-column">
+              <div
+                class="card border border-success-subtle bg-white shadow-sm rounded-4 overflow-hidden text-center p-4 p-md-4.5 h-100 d-flex flex-column justify-content-between">
+                <div class="d-flex flex-column flex-fill justify-content-between">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span
+                      class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 text-xs fw-bold">
+                      <i class="ti ti-sparkles me-1"></i> Example Barcode Pass
+                    </span>
+                    <span class="text-muted text-xs font-monospace">CODE128 FORMAT</span>
+                  </div>
+
+                  <!-- Barcode Render Canvas Area -->
+                  <div
+                    class="bg-light rounded-3 p-4 my-auto border border-light-subtle d-flex flex-column align-items-center justify-content-center flex-fill">
+                    <div class="my-auto w-100 overflow-hidden d-flex justify-content-center align-items-center py-2">
+                      <svg id="dashboard-example-barcode" class="w-100"
+                        style="max-height: 160px; max-width: 340px;"></svg>
+                    </div>
+                    <div class="fw-bold text-dark text-sm font-monospace tracking-widest mt-2"
+                      id="dashboard-example-code-text">EMP-2026-VERIFIED</div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons: Save, Download, Copy -->
+                <div class="d-flex align-items-center justify-content-center gap-2 pt-3 mt-auto">
+                  <button type="button"
+                    class="btn btn-outline-success rounded-pill px-3 py-2.5 fw-semibold flex-fill d-flex align-items-center justify-content-center gap-1.5"
+                    id="dashboard-save-btn">
+                    <i class="ti ti-bookmark me-1"></i> Save
+                  </button>
+                  <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2.5 fw-bold flex-fill d-flex align-items-center justify-content-center gap-1.5"
+                    id="dashboard-download-btn">
+                    <i class="ti ti-download me-1"></i> Download
+                  </button>
+                  <button type="button"
+                    class="btn btn-outline-primary rounded-pill px-3 py-2.5 fw-semibold flex-fill d-flex align-items-center justify-content-center gap-1.5"
+                    id="dashboard-copy-btn">
+                    <i class="ti ti-copy me-1"></i> Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 Simple Steps How-To Section (Includes Generate & Import Workflows) -->
+      <div id="steps-guide-section" class="mb-5 bg-white rounded-4 border border-light-subtle shadow-sm p-4 p-md-5">
+        <div class="text-center max-w-2xl mx-auto mb-5">
+          <h3 class="fw-bold text-dark mb-2">How to Generate & Verify Barcode Passes in 5 simple steps</h3>
+          <p class="text-muted small mb-0">Follow this quick process to generate, download, scan, and import employee
+            barcode verification passes</p>
+        </div>
+
+        <div class="position-relative steps-timeline">
+          <!-- Vertical Timeline Line (Desktop) -->
+          <div class="steps-line d-none d-md-block">
+            <div class="steps-line-fill" id="steps-progress-fill"></div>
+          </div>
+
+          <!-- Step 1 -->
+          <div class="row align-items-center mb-5 gy-4 step-item step-left" data-scroll-step="1">
+            <!-- Left Graphic Box -->
+            <div class="col-md-5">
+              <div class="p-4 rounded-4 bg-light-subtle border border-success-subtle shadow-sm">
+                <div class="bg-white p-3 rounded-3 border mb-3 shadow-xs">
+                  <div class="text-muted text-xs mb-1">Enter Employee Demographics</div>
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span class="badge bg-primary-subtle text-primary">EMP-2026</span>
+                    <span class="fw-bold text-dark text-sm">Abishek (Software Developer)</span>
+                  </div>
+                </div>
+                <div
+                  class="p-3 bg-success bg-opacity-10 rounded-3 border border-success border-opacity-25 d-flex justify-content-between align-items-center">
+                  <div>
+                    <div class="text-xs text-muted">Auto-Calc Annual Compensation</div>
+                    <div class="fw-bold text-success fs-5">₹2,40,000 / year</div>
+                  </div>
+                  <i class="ti ti-calculator text-success fs-2"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Step Circle -->
+            <div class="col-md-2 text-center position-relative">
+              <div
+                class="step-circle bg-primary text-white rounded-circle fw-bold fs-5 shadow mx-auto d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px;">
+                1
+              </div>
+            </div>
+
+            <!-- Right Description -->
+            <div class="col-md-5">
+              <h4 class="fw-bold text-dark mb-2">1. Choose your Employee & Salary details</h4>
+              <p class="text-muted leading-relaxed">
+                Fill in employee demographics, add past & present employment history, auto-calculate annual compensation
+                in Indian Rupees (₹), and attach compulsory salary slips.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="row align-items-center mb-5 gy-4 flex-md-row-reverse step-item step-right" data-scroll-step="2">
+            <!-- Right Graphic Box -->
+            <div class="col-md-5">
+              <div class="p-4 rounded-4 bg-light-subtle border border-success-subtle shadow-sm">
+                <div class="bg-white p-3 rounded-3 border text-center shadow-xs">
+                  <div class="badge bg-success-subtle text-success mb-2 px-3 py-1 rounded-pill">Code128 1D Barcode</div>
+                  <div class="my-2 p-2 bg-light rounded border">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" class="w-100"
+                      style="max-height: 45px;">
+                      <rect x="10" y="5" width="4" height="30" fill="#0f172a" />
+                      <rect x="18" y="5" width="2" height="30" fill="#0f172a" />
+                      <rect x="24" y="5" width="6" height="30" fill="#0f172a" />
+                      <rect x="34" y="5" width="2" height="30" fill="#0f172a" />
+                      <rect x="40" y="5" width="8" height="30" fill="#0f172a" />
+                      <rect x="52" y="5" width="3" height="30" fill="#0f172a" />
+                      <rect x="60" y="5" width="5" height="30" fill="#0f172a" />
+                      <rect x="70" y="5" width="2" height="30" fill="#0f172a" />
+                      <rect x="76" y="5" width="7" height="30" fill="#0f172a" />
+                      <rect x="88" y="5" width="4" height="30" fill="#0f172a" />
+                      <rect x="96" y="5" width="2" height="30" fill="#0f172a" />
+                      <rect x="102" y="5" width="6" height="30" fill="#0f172a" />
+                      <rect x="112" y="5" width="3" height="30" fill="#0f172a" />
+                      <rect x="120" y="5" width="5" height="30" fill="#0f172a" />
+                      <rect x="130" y="5" width="8" height="30" fill="#0f172a" />
+                      <rect x="142" y="5" width="2" height="30" fill="#0f172a" />
+                      <rect x="148" y="5" width="6" height="30" fill="#0f172a" />
+                      <rect x="158" y="5" width="4" height="30" fill="#0f172a" />
+                      <rect x="166" y="5" width="2" height="30" fill="#0f172a" />
+                      <rect x="172" y="5" width="8" height="30" fill="#0f172a" />
+                      <rect x="184" y="5" width="3" height="30" fill="#0f172a" />
+                    </svg>
+                  </div>
+                  <div class="text-xs font-monospace text-muted">EMP-2026-VERIFIED</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Step Circle -->
+            <div class="col-md-2 text-center position-relative">
+              <div
+                class="step-circle bg-primary text-white rounded-circle fw-bold fs-5 shadow mx-auto d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px;">
+                2
+              </div>
+            </div>
+
+            <!-- Left Description -->
+            <div class="col-md-5 text-md-end">
+              <h4 class="fw-bold text-dark mb-2">2. Customize it your way</h4>
+              <p class="text-muted leading-relaxed">
+                The system automatically generates a unique Code128 1D Barcode linked to the employee profile with
+                official identification badge details.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="row align-items-center mb-5 gy-4 step-item step-left" data-scroll-step="3">
+            <!-- Left Graphic Box -->
+            <div class="col-md-5">
+              <div class="p-4 rounded-4 bg-light-subtle border border-success-subtle shadow-sm">
+                <div class="bg-white p-3 rounded-3 border text-center shadow-xs">
+                  <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                    <span class="badge bg-success text-white"><i class="ti ti-download me-1"></i> PNG Format</span>
+                    <span class="badge bg-secondary text-white"><i class="ti ti-printer me-1"></i> Print Pass</span>
+                  </div>
+                  <div class="text-xs text-muted mb-1"><i class="ti ti-camera text-primary me-1"></i> Scan Camera /
+                    Image Verification Ready</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Step Circle -->
+            <div class="col-md-2 text-center position-relative">
+              <div
+                class="step-circle bg-primary text-white rounded-circle fw-bold fs-5 shadow mx-auto d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px;">
+                3
+              </div>
+            </div>
+
+            <!-- Right Description -->
+            <div class="col-md-5">
+              <h4 class="fw-bold text-dark mb-2">3. Download & share</h4>
+              <p class="text-muted leading-relaxed">
+                Pick PNG or Print format, hit download, scan camera barcodes, or search the verified employee database
+                directory instantly!
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 4 (NEW: Import - Scan Camera / Upload Image) -->
+          <div class="row align-items-center mb-5 gy-4 flex-md-row-reverse step-item step-right" data-scroll-step="4">
+            <!-- Right Graphic Box -->
+            <div class="col-md-5">
+              <div class="p-4 rounded-4 bg-light-subtle border border-info-subtle shadow-sm">
+                <div class="bg-white p-3 rounded-3 border text-center shadow-xs">
+                  <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                    <span class="badge bg-info text-white"><i class="ti ti-camera me-1"></i> Live Camera Scan</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i
+                        class="ti ti-upload me-1"></i> Image File Drop</span>
+                  </div>
+                  <div class="p-3 bg-info bg-opacity-10 rounded-3 border border-info border-opacity-25 text-center">
+                    <i class="ti ti-scan text-info fs-1 mb-1"></i>
+                    <div class="text-xs fw-bold text-info">Align Barcode Image or Point Camera</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Step Circle -->
+            <div class="col-md-2 text-center position-relative">
+              <div
+                class="step-circle bg-primary text-white rounded-circle fw-bold fs-5 shadow mx-auto d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px;">
+                4
+              </div>
+            </div>
+
+            <!-- Left Description -->
+            <div class="col-md-5 text-md-end">
+              <h4 class="fw-bold text-dark mb-2">4. Scan Camera or Upload Barcode Image</h4>
+              <p class="text-muted leading-relaxed">
+                Open "Import Existing Barcode", point your live webcam scanner or drag & drop a saved barcode image file
+                to decode employee hashes automatically.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 5 (NEW: Import - Instantly Search & Verify Database) -->
+          <div class="row align-items-center mb-4 gy-4 step-item step-left" data-scroll-step="5">
+            <!-- Left Graphic Box -->
+            <div class="col-md-5">
+              <div class="p-4 rounded-4 bg-light-subtle border border-info-subtle shadow-sm">
+                <div class="bg-white p-3 rounded-3 border shadow-xs">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge bg-info-subtle text-info border border-info-subtle"><i
+                        class="ti ti-database me-1"></i> Verified Database Record</span>
+                    <span class="badge bg-success-subtle text-success text-xs fw-bold">₹2,40,000 / yr</span>
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between bg-light p-2 rounded border">
+                    <div class="d-flex align-items-center gap-2">
+                      <span
+                        class="avatar bg-primary text-white rounded-circle text-xs fw-bold d-flex align-items-center justify-content-center"
+                        style="width: 28px; height: 28px;">AK</span>
+                      <span class="fw-bold text-dark text-xs">Abhishek (Software Developer)</span>
+                    </div>
+                    <span class="text-primary text-xs fw-bold"><i class="ti ti-file-text me-1"></i> Salary Slips</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Step Circle -->
+            <div class="col-md-2 text-center position-relative">
+              <div
+                class="step-circle bg-primary text-white rounded-circle fw-bold fs-5 shadow mx-auto d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px;">
+                5
+              </div>
+            </div>
+
+            <!-- Right Description -->
+            <div class="col-md-5">
+              <h4 class="fw-bold text-dark mb-2">5. Instantly Search & Verify Database Directory</h4>
+              <p class="text-muted leading-relaxed">
+                Lookup registered employee codes, review multi-employment history timelines, download verified salary
+                slip documents, and confirm annual compensation figures.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- CTA Buttons at Bottom -->
+        <div class="d-flex flex-column flex-sm-row justify-content-center gap-3 mt-4">
+          <button type="button" class="btn btn-outline-primary btn-lg rounded-pill px-4 py-3 fw-bold shadow-sm"
+            onclick="const btnGen = document.getElementById('dashboard-btn-generate'); if(btnGen) btnGen.click();">
+            <i class="ti ti-barcode me-2 fs-4"></i> Create a free Barcode Pass Now
+          </button>
+          <button type="button" class="btn btn-outline-primary btn-lg rounded-pill px-4 py-3 fw-bold shadow-sm"
+            onclick="const btnImp = document.getElementById('dashboard-btn-import'); if(btnImp) btnImp.click();">
+            <i class="ti ti-scan me-2 fs-4"></i> Scan & Import Existing Barcode Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Frequently Asked Questions (FAQ) Section (Matching User Screenshot) -->
+      <div id="faq-section" class="mb-5 bg-white rounded-4 border border-light-subtle shadow-sm p-4 p-md-5">
+        <div class="text-center max-w-2xl mx-auto mb-4">
+          <h3 class="display-6 fw-bold text-dark mb-3">Frequently Asked Questions</h3>
+
+          <!-- Category Tabs -->
+          <ul class="nav nav-pills justify-content-center gap-2 border-0 mb-4" id="faqCategoryTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active rounded-pill px-4 py-2 text-sm fw-bold border" id="faq-basics-tab"
+                data-bs-toggle="pill" data-bs-target="#faq-basics" type="button" role="tab">
+                QR Code Basics
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link rounded-pill px-4 py-2 text-sm fw-bold border" id="faq-design-tab"
+                data-bs-toggle="pill" data-bs-target="#faq-design" type="button" role="tab">
+                Design & Compensation
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link rounded-pill px-4 py-2 text-sm fw-bold border" id="faq-download-tab"
+                data-bs-toggle="pill" data-bs-target="#faq-download" type="button" role="tab">
+                Download & Scan
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="w-100 max-w-5xl mx-auto">
+          <div class="tab-content" id="faqCategoryTabsContent">
+
+            <!-- Category 1: QR Code Basics -->
+            <div class="tab-pane fade show active" id="faq-basics" role="tabpanel">
+              <div class="accordion accordion-flush" id="accordionBasics">
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsOne">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsOne" aria-expanded="false">
+                      Are QR code & Barcode generators really free?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsOne" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      Yes! Our Employee Verification Barcode Pass system is 100% free to generate scannable 1D Code128
+                      barcodes and 2D QR codes with zero hidden fees, subscriptions, or expiration dates.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsTwo">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsTwo" aria-expanded="false">
+                      What is the difference between a static Code128 barcode and a dynamic QR payload?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsTwo" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      A static 1D Code128 linear barcode encodes textual identifiers directly into scannable black bars,
+                      while a dynamic QR payload links securely to online employee verification records, employment
+                      history, and salary slip downloads.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsThree">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsThree"
+                      aria-expanded="false">
+                      Do QR Codes & Barcodes expire?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsThree" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      No! All generated Code128 1D barcodes and QR passes remain active permanently for internal
+                      verification, physical employee badges, and identity records.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsFour">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsFour"
+                      aria-expanded="false">
+                      Are QR codes and barcodes safe to scan?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsFour" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      Absolutely. Barcodes encode non-PII secure hashes (e.g.
+                      <code>https://learnhub.app/emp/scan/{hash}</code>) protecting sensitive personal information from
+                      unauthorized extraction when scanned publicly.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsFive">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsFive"
+                      aria-expanded="false">
+                      Will my QR code stop working after a while?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsFive" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      No. The barcodes generated are standard Code128 linear barcodes that work reliably across physical
+                      scanners, handheld laser readers, and mobile camera apps indefinitely.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsSix">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsSix" aria-expanded="false">
+                      Can I create a QR Code for a long URL or employee profile?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsSix" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      Yes! The system automatically converts lengthy URL links and multi-field employee records into
+                      compact, scannable QR matrix codes.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsSeven">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsSeven"
+                      aria-expanded="false">
+                      Why is my QR Code or Barcode not working?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsSeven" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      Ensure there is adequate contrast between the black bars and white background, and that the
+                      barcode image is not blurred, distorted, or cropped during printing.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingBasicsEight">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasicsEight"
+                      aria-expanded="false">
+                      Do QR Codes work without the internet?
+                    </button>
+                  </h2>
+                  <div id="collapseBasicsEight" class="accordion-collapse collapse" data-bs-parent="#accordionBasics">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      1D Code128 barcodes and offline QR text payloads can be read by scanners offline. Opening
+                      web-hosted employee verification links requires an active internet connection.
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Category 2: Design & Compensation -->
+            <div class="tab-pane fade" id="faq-design" role="tabpanel">
+              <div class="accordion accordion-flush" id="accordionDesign">
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingDesignOne">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseDesignOne" aria-expanded="false">
+                      How does the automatic annual salary calculation work?
+                    </button>
+                  </h2>
+                  <div id="collapseDesignOne" class="accordion-collapse collapse" data-bs-parent="#accordionDesign">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      As soon as you type the Monthly Salary in Indian Rupees (₹), the engine instantly auto-calculates
+                      annual compensation (Annual = Monthly x 12) and displays real-time gradient breakdown cards.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingDesignTwo">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseDesignTwo" aria-expanded="false">
+                      Why is salary slip attachment compulsory?
+                    </button>
+                  </h2>
+                  <div id="collapseDesignTwo" class="accordion-collapse collapse" data-bs-parent="#accordionDesign">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      Compulsory salary slip uploads (PDF, PNG, JPG &lt; 5MB) ensure legal background verification and
+                      audit compliance for every registered employment history entry.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingDesignThree">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseDesignThree"
+                      aria-expanded="false">
+                      Can I document multiple past employment histories?
+                    </button>
+                  </h2>
+                  <div id="collapseDesignThree" class="accordion-collapse collapse" data-bs-parent="#accordionDesign">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      Yes! Click "+ Add Another Experience" to document multiple past and present employment tenures
+                      with automatic total experience duration calculation.
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Category 3: Download & Scan -->
+            <div class="tab-pane fade" id="faq-download" role="tabpanel">
+              <div class="accordion accordion-flush" id="accordionDownload">
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingDownloadOne">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseDownloadOne"
+                      aria-expanded="false">
+                      How do I download or print the generated Barcode Pass?
+                    </button>
+                  </h2>
+                  <div id="collapseDownloadOne" class="accordion-collapse collapse" data-bs-parent="#accordionDownload">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      After clicking "Generate Barcode", an instant modal preview opens. Click "Download PNG" to save
+                      the badge image or "Print Badge" for physical ID cards.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item border-bottom py-2">
+                  <h2 class="accordion-header" id="headingDownloadTwo">
+                    <button class="accordion-button collapsed bg-white text-dark fw-semibold fs-6 px-0 py-3 shadow-none"
+                      type="button" data-bs-toggle="collapse" data-bs-target="#collapseDownloadTwo"
+                      aria-expanded="false">
+                      How do I scan and verify an existing employee barcode?
+                    </button>
+                  </h2>
+                  <div id="collapseDownloadTwo" class="accordion-collapse collapse" data-bs-parent="#accordionDownload">
+                    <div class="accordion-body px-0 text-muted small leading-relaxed">
+                      Open "Import Existing Barcode", point your camera scanner or drop a barcode image file to
+                      instantly decode and pull up employee verification records.
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Form & Content Section (Hidden by Default until Card Button Clicked) -->
+      <div id="content-panel-section" class="d-none">
+        <!-- Top Navigation Header Bar with Back Button -->
+        <div
+          class="d-flex align-items-center justify-content-between mb-4 bg-white p-3 p-md-4 rounded-4 border border-light-subtle shadow-sm">
+          <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2.5 fw-bold shadow-sm"
+            id="back-to-dashboard-btn">
+            <i class="ti ti-arrow-left me-2"></i> Back to Dashboard
+          </button>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-bold"
+            id="active-screen-badge">
+            <i class="ti ti-qrcode me-1"></i> New Barcode Generator Form
+          </span>
+        </div>
+
+        <!-- Form & Content Card Container (Renders ONLY the corresponding active form) -->
+        <div class="card border border-light-subtle shadow-sm rounded-4 overflow-hidden bg-white">
+          <div class="card-body p-4 p-md-5">
+
+            <!-- SCREEN 1: NEW BARCODE GENERATE FORM -->
+            <div id="screen-generate" class="d-none">
+              <form id="employee-form">
+                <!-- Section 1: Employee Demographics -->
+                <div class="card border border-light-subtle shadow-sm mb-4 rounded-3">
+                  <div class="card-header bg-light py-3">
+                    <h5 class="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
+                      <i class="ti ti-user text-primary fs-4"></i> Employee Demographics
+                    </h5>
+                  </div>
+                  <div class="card-body p-4">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label for="emp-name" class="form-label fw-medium text-dark">Full Name <span
+                            class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="emp-name"
+                          placeholder="e.g. Jane Doe" pattern="[A-Za-z\s\.]+"
+                          oninput="this.value = this.value.replace(/[^A-Za-z\s\.]/g, '')" required>
+                        <div class="invalid-feedback">Full name must contain letters and spaces only (no numbers).</div>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="emp-code" class="form-label fw-medium text-dark">Employee Code / ID <span
+                            class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="emp-code"
+                          placeholder="e.g. EMP-2026" required>
+                        <div class="invalid-feedback">Please enter a valid employee code (e.g. EMP-1001).</div>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="emp-mobile" class="form-label fw-medium text-dark">Mobile Number <span
+                            class="text-danger">*</span></label>
+                        <input type="tel" class="form-control form-control-lg" id="emp-mobile"
+                          placeholder="e.g. 9876543210" maxlength="10" inputmode="numeric" pattern="[0-9]{10}"
+                          oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                        <div class="invalid-feedback">Mobile number must contain exactly 10 numeric digits.</div>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="emp-email" class="form-label fw-medium text-dark">Email Address <span
+                            class="text-danger">*</span></label>
+                        <input type="email" class="form-control form-control-lg" id="emp-email"
+                          placeholder="jane.doe@company.com" required>
+                        <div class="invalid-feedback">Please enter a valid email address (e.g. user@domain.com).</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 2: Dynamic Multi-Employment History Array -->
+                <div class="mb-4">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
+                      <i class="ti ti-history text-primary fs-4"></i> Employment History & Salary Slips
+                    </h5>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                      Multi-Entry Enabled (+ add another option)
+                    </span>
+                  </div>
+
+                  <!-- Container for Dynamic Cards -->
+                  <div id="experience-items-container"></div>
+
+                  <div class="text-center my-4">
+                    <button type="button" class="btn btn-outline-primary btn-lg rounded-pill px-4"
+                      id="add-experience-btn">
+                      <i class="ti ti-plus me-1"></i> + Add Another Experience
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Alert Notification Container -->
+                <div id="form-alert-container" class="col-md-8 mx-auto mt-4"></div>
+
+                <!-- Submit Button -->
+                <div class="d-grid gap-2 col-md-8 mx-auto mt-3">
+                  <button type="submit" id="submit-emp-btn"
+                    class="btn btn-outline-primary btn-lg py-3 rounded-pill fw-bold shadow-sm">
+                    <i class="ti ti-qrcode me-2 fs-4"></i> Generate Barcode & Employee Badge
+                  </button>
+                </div>
+              </form>
+
+              <!-- Generated Barcode & Badge Result Section (Hidden until generated) -->
+              <div id="badge-result-container" class="mt-5 pt-4 border-top d-none">
+                <div id="badge-preview-container"></div>
+              </div>
+            </div>
+
+            <!-- SCREEN 2: IMPORT EXISTING BARCODE -->
+            <div id="screen-import" class="d-none">
+              <div class="row g-4 mb-5">
+                <!-- Camera Scanner Column -->
+                <div class="col-lg-7">
+                  <div class="card border rounded-4 shadow-sm h-100">
+                    <div class="card-header bg-light py-3">
+                      <h5 class="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
+                        <i class="ti ti-camera text-primary"></i> Live Camera / Webcam Barcode Scanner
+                      </h5>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                      <p class="text-muted small mb-3">
+                        Point your mobile camera or webcam at an employee QR pass to scan and import details instantly.
+                      </p>
+                      <div id="interactive-qr-reader" class="rounded-3 overflow-hidden bg-dark-subtle p-2"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Import / Manual Lookup Column -->
+                <div class="col-lg-5">
+                  <div class="card border rounded-4 shadow-sm mb-4">
+                    <div class="card-header bg-light py-3">
+                      <h5 class="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
+                        <i class="ti ti-file-search text-primary"></i> Import Code / Image Scan
+                      </h5>
+                    </div>
+                    <div class="card-body p-4">
+                      <label class="form-label fw-medium text-dark">Upload QR Image File</label>
+                      <input type="file" class="form-control mb-3" id="scan-image-file-input" accept="image/*">
+                      <div id="file-scanner-temp-container" class="d-none"></div>
+
+                      <hr class="my-4">
+
+                      <label class="form-label fw-medium text-dark">Manual Barcode Hash / Employee Code</label>
+                      <div class="input-group">
+                        <input type="text" class="form-control" id="manual-code-input"
+                          placeholder="e.g. 8f7d9a12-... or EMP-1001">
+                        <button class="btn btn-primary" type="button" id="manual-code-search-btn">
+                          <i class="ti ti-search me-1"></i> Fetch Details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Scanned / Imported Result Container -->
+              <div id="import-result-container" class="mb-5"></div>
+
+              <!-- Registered Employees Directory -->
+              <div class="card border rounded-4 shadow-sm">
+                <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                  <h5 class="fw-bold text-dark mb-0"><i class="ti ti-database me-2 text-primary"></i> Registered
+                    Employees Database</h5>
+                </div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Employee Name & Email</th>
+                          <th>Employee Code</th>
+                          <th>Latest Role & Company</th>
+                          <th>Annual Salary (Auto-Calc)</th>
+                          <th>History Entries</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="directory-table-body">
+                        <!-- Populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </section>
+
+
+
+  <!-- Full Profile & Salary Slips Modal -->
+  <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content rounded-4 border-0">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-dark" id="profileModalLabel">Employee Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="profileModalBody">
+          <!-- Populated dynamically -->
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign In Modal -->
+  <div class="modal fade" id="signInModal" tabindex="-1" aria-labelledby="signInModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header bg-primary text-white py-3">
+          <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="signInModalLabel">
+            <i class="ti ti-login fs-4"></i> Sign In to Account
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 bg-white">
+          <form id="signInForm"
+            onsubmit="event.preventDefault(); Swal.fire({ title: 'Signed In Successfully!', text: 'Welcome back to BG Verification Portal.', icon: 'success', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' }, buttonsStyling: false }); const signInModalInst = bootstrap.Modal.getInstance(document.getElementById('signInModal')); if(signInModalInst) signInModalInst.hide();">
+            <div class="mb-3">
+              <label for="signin-email" class="form-label fw-medium text-dark">Email Address</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="ti ti-mail text-muted"></i></span>
+                <input type="email" class="form-control" id="signin-email" placeholder="name@company.com" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="signin-password" class="form-label fw-medium text-dark">Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="ti ti-lock text-muted"></i></span>
+                <input type="password" class="form-control" id="signin-password" placeholder="••••••••" required>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="rememberMe">
+                <label class="form-check-label text-muted small" for="rememberMe">Remember me</label>
+              </div>
+              <a href="javascript:void(0);" class="text-primary small fw-medium text-decoration-none" onclick="Swal.fire({ title: 'Password Reset', text: 'Password reset link has been sent to your registered email address.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });">Forgot password?</a>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-pill fw-bold">
+              <i class="ti ti-login me-1"></i> Sign In
+            </button>
+          </form>
+        </div>
+        <div class="modal-footer bg-light justify-content-center py-3">
+          <span class="text-muted small">Don't have an account?</span>
+          <a href="javascript:void(0);" class="text-primary fw-bold small text-decoration-none ms-1" data-bs-dismiss="modal"
+            data-bs-toggle="modal" data-bs-target="#signUpModal">Sign Up Here</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign Up Modal -->
+  <div class="modal fade" id="signUpModal" tabindex="-1" aria-labelledby="signUpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header bg-primary text-white py-3">
+          <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="signUpModalLabel">
+            <i class="ti ti-user-plus fs-4"></i> Create New Account
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 bg-white">
+          <form id="signUpForm"
+            onsubmit="event.preventDefault(); Swal.fire({ title: 'Account Created Successfully!', text: 'Your account has been registered. Welcome aboard!', icon: 'success', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' }, buttonsStyling: false }); const signUpModalInst = bootstrap.Modal.getInstance(document.getElementById('signUpModal')); if(signUpModalInst) signUpModalInst.hide();">
+            <div class="mb-3">
+              <label for="signup-name" class="form-label fw-medium text-dark">Full Name</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="ti ti-user text-muted"></i></span>
+                <input type="text" class="form-control" id="signup-name" placeholder="John Doe" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="signup-email" class="form-label fw-medium text-dark">Work Email Address</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="ti ti-mail text-muted"></i></span>
+                <input type="email" class="form-control" id="signup-email" placeholder="john@company.com" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="signup-password" class="form-label fw-medium text-dark">Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="ti ti-lock text-muted"></i></span>
+                <input type="password" class="form-control" id="signup-password" placeholder="Create password" required>
+              </div>
+            </div>
+            <div class="form-check mb-4">
+              <input class="form-check-input" type="checkbox" id="termsCheck" required>
+              <label class="form-check-label text-muted small" for="termsCheck">
+                I agree to the <a href="javascript:void(0);" class="text-primary" onclick="Swal.fire({ title: 'Terms of Service', text: 'By registering, you agree to our Phygital Barcode Security Terms.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });">Terms of Service</a> and <a href="javascript:void(0);"
+                  class="text-primary" onclick="Swal.fire({ title: 'Privacy Policy', text: 'Your employee verification data is stored with zero PII exposure in compliance with privacy laws.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });">Privacy Policy</a>
+              </label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-pill fw-bold">
+              <i class="ti ti-user-plus me-1"></i> Create Account
+            </button>
+          </form>
+        </div>
+        <div class="modal-footer bg-light justify-content-center py-3">
+          <span class="text-muted small">Already have an account?</span>
+          <a href="javascript:void(0);" class="text-primary fw-bold small text-decoration-none ms-1" data-bs-dismiss="modal"
+            data-bs-toggle="modal" data-bs-target="#signInModal">Sign In Here</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Component Section (Matching User Screenshot) -->
+  <footer class="bg-dark text-white pt-5 pb-4 mt-5">
+    <div class="container-xxl px-4 px-md-5">
+      <div class="row g-4 mb-5">
+        <!-- Callout Column (Col 1) -->
+        <div class="col-lg-4 col-md-12 pe-lg-4">
+          <h5 class="fw-bold text-white mb-3">Sign up for the 14-day free trial today!</h5>
+          <p class="text-secondary small leading-relaxed mb-4">
+            Sign up with the easiest-to-use QR Code & Barcode generator and get access to creating dynamic QR Codes and
+            1D Barcodes that are <em>editable</em> and <em>trackable</em>.
+          </p>
+          <button type="button" class="btn btn-primary rounded-3 px-4 py-2.5 fw-bold shadow-sm footer-signup-btn" data-bs-toggle="modal"
+            data-bs-target="#signUpModal">
+            Sign up free
+          </button>
+        </div>
+
+        <!-- Links Column 1: Company Info -->
+        <div class="col-lg-2 col-md-3 col-6">
+          <h6 class="fw-bold text-white mb-3 text-uppercase text-xs tracking-wider">Company Info</h6>
+          <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Privacy Policy', text: 'Our platform adheres to global privacy standards and secure data encryption.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Privacy</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Terms of Use', text: 'Review the official terms governing workforce data verification.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Terms of use</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Imprint', text: 'Uniqode Phygital Inc. Legal Entity Information.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Imprint</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Security & Compliance', text: 'ISO-27001 Certified with SOC2 Type II compliance.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Security & Compliance</a></li>
+          </ul>
+        </div>
+
+        <!-- Links Column 2: Resources -->
+        <div class="col-lg-2 col-md-3 col-6">
+          <h6 class="fw-bold text-white mb-3 text-uppercase text-xs tracking-wider">Resources</h6>
+          <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Portal Blog', text: 'Explore the latest insights on QR Code & Barcode workforce security.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Blog</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Chrome Extension', text: 'Quick scanner chrome extension is active.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Chrome Extension</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Mobile Scanner App', text: 'Download our iOS and Android webcam scanner companion app.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Mobile App</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'QR Barcode Generator', text: 'Generate high resolution 1D Code128 barcodes.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">QR Code Generator</a></li>
+          </ul>
+        </div>
+
+        <!-- Links Column 3: Support -->
+        <div class="col-lg-2 col-md-3 col-6">
+          <h6 class="fw-bold text-white mb-3 text-uppercase text-xs tracking-wider">Support</h6>
+          <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Pricing Plans', text: 'Free 14-day trial included with all business plans.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Pricing</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Help Center', text: '24/7 Priority Support available for enterprise verification accounts.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Help Center</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Community', text: 'Join 50,000+ HR administrators verifying employee passes.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Community</a></li>
+            <li><a href="javascript:void(0);" onclick="Swal.fire({ title: 'Developer Docs', text: 'REST API documentation for relational employee lookup.', icon: 'info', confirmButtonColor: '#09C82C', customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });" class="text-secondary text-decoration-none hover-white">Documentation</a></li>
+          </ul>
+        </div>
+
+        <!-- Links Column 4: Contact Us -->
+        <div class="col-lg-2 col-md-3 col-6">
+          <h6 class="fw-bold text-white mb-3 text-uppercase text-xs tracking-wider">Contact us</h6>
+          <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
+            <li><a href="tel:+19299302212" class="text-secondary text-decoration-none hover-white">+1 (929) 930 2212</a>
+            </li>
+            <li><a href="mailto:support@the-qrcode-generator.com"
+                class="text-secondary text-decoration-none hover-white text-break">support@the-qrcode-generator.com</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Sub-Footer Bottom Bar -->
+      <div
+        class="border-top border-secondary border-opacity-25 pt-4 d-flex flex-column flex-md-row align-items-center justify-content-between text-secondary small gap-3">
+        <div>
+          © 2026 Uniqode Phygital, Inc. All rights reserved.
+        </div>
+
+        
+
+        <div>
+          Made with <span class="text-danger">❤️</span> in Germany, India, and the U.S.A
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="./assets/js/main.js" type="module"></script>
+</body>
+
+</html>

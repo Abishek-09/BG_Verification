@@ -1,0 +1,345 @@
+
+
+.text-xs{
+	font-size: $font-xs !important;
+}
+
+.navbar .nav-link.active {
+  color: $primary !important;
+}
+
+/* Generous Button Inner Padding */
+.btn {
+  padding: 0.65rem 1.25rem;
+  line-height: 1.5;
+}
+
+/* Default Button & Tab Styling - Text Green (#09C82C) & Border Green (#09C82C) */
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-info,
+.btn-outline-success,
+.nav-pills .nav-link {
+  color: #09C82C !important;
+  border-color: rgba(9, 200, 44, 0.4) !important;
+}
+
+.btn-outline-primary *,
+.btn-outline-secondary *,
+.btn-outline-info *,
+.btn-outline-success *,
+.nav-pills .nav-link * {
+  color: #09C82C !important;
+}
+
+/* Universal Button & Tab Hover - Background Green (#09C82C) & Text White (#ffffff) */
+.btn:hover,
+.btn-primary:hover,
+.btn-outline-primary:hover,
+.btn-secondary:hover,
+.btn-outline-secondary:hover,
+.btn-info:hover,
+.btn-outline-info:hover,
+.btn-danger:hover,
+.btn-outline-danger:hover,
+.btn-light:hover,
+.btn-dark:hover,
+.navbar .btn:hover,
+.navbar .btn-primary:hover,
+.navbar .btn-outline-primary:hover,
+.nav-pills .nav-link:hover,
+.view-badge-btn:hover,
+.view-profile-btn:hover,
+.delete-emp-btn:hover,
+.remove-card-btn:hover,
+.remove-file-btn:hover {
+  background-color: #09C82C !important;
+  background: #09C82C !important;
+  border-color: #09C82C !important;
+  color: #ffffff !important;
+}
+
+.btn:hover *,
+.nav-pills .nav-link:hover *,
+.navbar .btn:hover * {
+  color: #ffffff !important;
+}
+
+/* Down Left Corner Footer Button Hover: Background White (#ffffff) & Text Green (#09C82C) */
+footer.bg-dark .btn:hover,
+footer.bg-dark .footer-signup-btn:hover,
+.footer-signup-btn:hover {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border-color: #09C82C !important;
+  color: #09C82C !important;
+}
+
+footer.bg-dark .btn:hover *,
+footer.bg-dark .footer-signup-btn:hover *,
+.footer-signup-btn:hover * {
+  color: #09C82C !important;
+}
+
+/* Active Nav Pill Tab */
+.nav-pills .nav-link.active,
+.nav-pills .nav-link.active:hover {
+  background-color: #09C82C !important;
+  border-color: #09C82C !important;
+  color: #ffffff !important;
+}
+
+.nav-pills .nav-link.active * {
+  color: #ffffff !important;
+}
+
+.circle-bg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 800px;
+  background-color: rgba($primary, 0.05);
+  border-radius: 9999px;
+  filter: blur(48px);
+}
+
+// pulse wave
+
+.play-btn {
+    font-size: 24px;
+    line-height: 32px;
+    position: relative;
+    background-color: rgba($primary, 0.85);
+    &:before {
+        content: "";
+        position: absolute;
+        width: 150%;
+        height: 150%;
+        -webkit-animation-delay: 0s;
+        animation-delay: 0s;
+        -webkit-animation: pulsate1 2s;
+        animation: pulsate1 2s;
+        -webkit-animation-direction: forwards;
+        animation-direction: forwards;
+        -webkit-animation-iteration-count: infinite;
+        animation-iteration-count: infinite;
+        -webkit-animation-timing-function: steps;
+        animation-timing-function: steps;
+        opacity: 1;
+        border-radius: 50%;
+        border: 5px solid var(--#{$prefix}border-color);
+        box-shadow: rgba(0, 0, 0, 0.3) 0px 2px 4px 0px;
+    }
+}
+
+@-webkit-keyframes pulsate1 {
+    0% {
+        -webkit-transform: scale(0.8);
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        opacity: 0;
+        box-shadow: none;
+    }
+}
+
+@keyframes pulsate1 {
+    0% {
+        -webkit-transform: scale(0.8);
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        -webkit-transform: scale(1, 1);
+        transform: scale(1);
+        opacity: 0;
+        box-shadow: none;
+    }
+}
+
+
+@import "./avatar";
+@import "./button";
+@import "./icon-shape";
+@import "./utilities";
+@import "./card";
+
+/* Employee Management System Custom Styles */
+.file-upload-zone {
+  transition: all 0.2s ease-in-out;
+  border-style: dashed !important;
+  border-color: rgba($primary, 0.3) !important;
+  background-color: rgba($primary, 0.02) !important;
+  &:hover {
+    border-color: $primary !important;
+    background-color: rgba($primary, 0.05) !important;
+  }
+}
+
+.tracking-wide {
+  letter-spacing: 0.08em;
+}
+
+.text-xs {
+  font-size: 0.75rem !important;
+}
+
+#interactive-qr-reader {
+  border: 0 !important;
+  img {
+    display: none;
+  }
+  video {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  button {
+    @extend .btn, .btn-primary, .btn-sm, .rounded-pill;
+    margin: 8px 4px !important;
+  }
+}
+
+.timeline {
+  position: relative;
+  .timeline-item {
+    position: relative;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-badge-card, #printable-badge-card * {
+    visibility: visible;
+  }
+  #printable-badge-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
+}
+
+/* 5-Step Parallax Workflow Timeline Styles */
+.steps-timeline {
+  position: relative;
+  .steps-line {
+    position: absolute;
+    top: 24px;
+    bottom: 24px;
+    left: 50%;
+    width: 3px;
+    background-color: #e2e8f0;
+    transform: translateX(-50%);
+    z-index: 0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .steps-line-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: linear-gradient(180deg, #09C82C 0%, #0284c7 100%);
+    transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .step-item {
+    opacity: 0;
+    transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.85s ease-out;
+    will-change: transform, opacity;
+
+    &.step-left {
+      transform: translateY(40px) translateX(-30px);
+    }
+    &.step-right {
+      transform: translateY(40px) translateX(30px);
+    }
+
+    &.is-visible {
+      opacity: 1;
+      transform: translate(0, 0) !important;
+
+      .step-circle {
+        transform: scale(1.1);
+        background-color: #09C82C !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 20px rgba(9, 200, 44, 0.5) !important;
+      }
+    }
+  }
+
+  .step-circle {
+    position: relative;
+    z-index: 2;
+    background-color: #94a3b8 !important;
+    color: #ffffff !important;
+    transition: transform 0.4s ease, background-color 0.4s ease, box-shadow 0.4s ease;
+    transform: scale(0.85);
+  }
+}
+
+/* Dark Footer Styles */
+footer.bg-dark {
+  background-color: #121316 !important;
+}
+
+
+/* Generous Vertical Spacing Between Main Dashboard Sections & Divs */
+.main-title-header {
+  margin-bottom: 3.5rem !important;
+  @media (min-width: 992px) {
+    margin-bottom: 5rem !important;
+  }
+}
+
+#dashboard-card-section {
+  margin-bottom: 4.5rem !important;
+  @media (min-width: 992px) {
+    margin-bottom: 6rem !important;
+  }
+}
+
+#steps-guide-section {
+  margin-bottom: 4.5rem !important;
+  @media (min-width: 992px) {
+    margin-bottom: 6rem !important;
+  }
+}
+
+#faq-section {
+  margin-bottom: 4.5rem !important;
+  @media (min-width: 992px) {
+    margin-bottom: 6rem !important;
+  }
+}
+
+/* Hero Quote Callout Card Styling */
+.quote-callout-card {
+  max-width: 680px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1px solid rgba(9, 200, 44, 0.25) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(9, 200, 44, 0.12) !important;
+  }
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: #09C82C;
+  }
+}
+
