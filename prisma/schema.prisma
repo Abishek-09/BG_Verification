@@ -1,0 +1,107 @@
+// =====================================================================
+// Background Verification System - Prisma 7 Schema Definition
+// Tables: person, department, roles, person_department, person_roles, person_details
+// =====================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Person {
+  id                BigInt             @id @default(autoincrement())
+  name              String             @db.VarChar(150)
+  email             String             @unique @db.VarChar(255)
+  status            String             @default("active") @db.VarChar(50)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  personDepartments PersonDepartment[]
+  personRoles       PersonRoles[]
+  personDetails     PersonDetails[]
+
+  @@map("person")
+}
+
+model Department {
+  id                BigInt             @id @default(autoincrement())
+  name              String             @unique @db.VarChar(150)
+  status            String             @default("active") @db.VarChar(50)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  personDepartments PersonDepartment[]
+
+  @@map("department")
+}
+
+model Roles {
+  id          BigInt        @id @default(autoincrement())
+  name        String        @unique @db.VarChar(150)
+  status      String        @default("active") @db.VarChar(50)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  personRoles PersonRoles[]
+
+  @@map("roles")
+}
+
+model PersonDepartment {
+  id            BigInt          @id @default(autoincrement())
+  personId      BigInt          @map("person_id")
+  departmentId  BigInt          @map("department_id")
+  status        String          @default("active") @db.VarChar(50)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  person        Person          @relation(fields: [personId], references: [id], onDelete: Cascade)
+  department    Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  personDetails PersonDetails[]
+
+  @@unique([personId, departmentId], name: "uq_person_department")
+  @@index([personId], map: "idx_person_dept_person_id")
+  @@index([departmentId], map: "idx_person_dept_dept_id")
+  @@map("person_department")
+}
+
+model PersonRoles {
+  id            BigInt          @id @default(autoincrement())
+  personId      BigInt          @map("person_id")
+  roleId        BigInt          @map("role_id")
+  status        String          @default("active") @db.VarChar(50)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  person        Person          @relation(fields: [personId], references: [id], onDelete: Cascade)
+  role          Roles           @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  personDetails PersonDetails[]
+
+  @@unique([personId, roleId], name: "uq_person_roles")
+  @@index([personId], map: "idx_person_roles_person_id")
+  @@index([roleId], map: "idx_person_roles_role_id")
+  @@map("person_roles")
+}
+
+model PersonDetails {
+  id               BigInt            @id @default(autoincrement())
+  personId         BigInt            @map("person_id")
+  mobile           String?           @db.VarChar(20)
+  companyName      String?           @map("company_name") @db.VarChar(150)
+  barcodeData      String?           @map("barcode_data") @db.Text
+  monthlySalary    Decimal?          @map("monthly_salary") @db.Decimal(12, 2)
+  totalExperience  String?           @map("total_experience") @db.VarChar(50)
+  startDate        DateTime?         @map("start_date") @db.Date
+  endDate          DateTime?         @map("end_date") @db.Date
+  personDeptId     BigInt?           @map("person_dept_id")
+  personRoleId     BigInt?           @map("person_role_id")
+  employeeCode     String?           @map("employee_code") @db.VarChar(50)
+  companyAddress   String?           @map("company_address") @db.Text
+  personAddress    String?           @map("person_address") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  status           String            @default("active") @db.VarChar(50)
+  remarks          String?           @db.Text
+  paymentSlip      String?           @map("payment_slip") @db.Text
+  photoUrl         String?           @map("photo_url") @db.Text
+  person           Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personDepartment PersonDepartment? @relation(fields: [personDeptId], references: [id], onDelete: SetNull)
+  personRole       PersonRoles?      @relation(fields: [personRoleId], references: [id], onDelete: SetNull)
+
+  @@index([personId], map: "idx_person_details_person_id")
+  @@index([employeeCode], map: "idx_person_details_emp_code")
+  @@index([status], map: "idx_person_details_status")
+  @@map("person_details")
+}

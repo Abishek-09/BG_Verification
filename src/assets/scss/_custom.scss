@@ -1,17 +1,35 @@
+// =====================================================================
+// Custom Styles & Rich Dynamic Hover Actions
+// =====================================================================
 
-
-.text-xs{
-	font-size: $font-xs !important;
+.text-xs {
+  font-size: $font-xs !important;
 }
 
 .navbar .nav-link.active {
   color: $primary !important;
 }
 
-/* Generous Button Inner Padding */
+/* Generous Button Inner Padding & Base Smooth Transition */
 .btn {
   padding: 0.65rem 1.25rem;
   line-height: 1.5;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, box-shadow, background-color, border-color;
+
+  i {
+    transition: transform 0.25s ease;
+    display: inline-block;
+  }
+
+  &:hover i {
+    transform: scale(1.18);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  }
 }
 
 /* Default Button & Tab Styling - Text Green (#09C82C) & Border Green (#09C82C) */
@@ -22,6 +40,7 @@
 .nav-pills .nav-link {
   color: #09C82C !important;
   border-color: rgba(9, 200, 44, 0.4) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .btn-outline-primary *,
@@ -30,9 +49,10 @@
 .btn-outline-success *,
 .nav-pills .nav-link * {
   color: #09C82C !important;
+  transition: color 0.25s ease;
 }
 
-/* Universal Button & Tab Hover - Background Green (#09C82C) & Text White (#ffffff) */
+/* Universal Button Hover Action - Smooth Lift, Glow & Color Fill */
 .btn:hover,
 .btn-primary:hover,
 .btn-outline-primary:hover,
@@ -40,32 +60,224 @@
 .btn-outline-secondary:hover,
 .btn-info:hover,
 .btn-outline-info:hover,
-.btn-danger:hover,
-.btn-outline-danger:hover,
 .btn-light:hover,
 .btn-dark:hover,
 .navbar .btn:hover,
 .navbar .btn-primary:hover,
 .navbar .btn-outline-primary:hover,
-.nav-pills .nav-link:hover,
-.view-badge-btn:hover,
-.view-profile-btn:hover,
-.delete-emp-btn:hover,
 .remove-card-btn:hover,
 .remove-file-btn:hover {
   background-color: #09C82C !important;
   background: #09C82C !important;
   border-color: #09C82C !important;
   color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(9, 200, 44, 0.3) !important;
 }
 
 .btn:hover *,
-.nav-pills .nav-link:hover *,
 .navbar .btn:hover * {
   color: #ffffff !important;
 }
 
-/* Down Left Corner Footer Button Hover: Background White (#ffffff) & Text Green (#09C82C) */
+/* Specific Directory Table Action Buttons Hover Customization */
+.add-exp-btn {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  &:hover {
+    background-color: #09C82C !important;
+    border-color: #09C82C !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 16px rgba(9, 200, 44, 0.35) !important;
+  }
+}
+
+.view-badge-btn {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  &:hover {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 16px rgba(13, 110, 253, 0.35) !important;
+    * { color: #ffffff !important; }
+  }
+}
+
+/* View QR Badge Card button in profile modal — white default, green on hover */
+.btn-view-qr-badge {
+  background-color: #ffffff !important;
+  color: #09C82C !important;
+  border: 1.5px solid #09C82C !important;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, box-shadow, background-color;
+
+  i {
+    color: #09C82C !important;
+    transition: transform 0.25s ease, color 0.25s ease;
+  }
+
+  &:hover {
+    background-color: #09C82C !important;
+    border-color: #09C82C !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 18px rgba(9, 200, 44, 0.35) !important;
+
+    i {
+      color: #ffffff !important;
+      transform: scale(1.18);
+    }
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98) !important;
+    box-shadow: 0 2px 6px rgba(9, 200, 44, 0.2) !important;
+  }
+}
+
+/* Camera Permission & Scanner Buttons + Manual Fetch Details Button — Green default, White on hover */
+#manual-code-search-btn,
+#interactive-qr-reader button,
+#html5-qrcode-button-camera-permission {
+  background-color: #09C82C !important;
+  background: #09C82C !important;
+  color: #ffffff !important;
+  border: 1.5px solid #09C82C !important;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, box-shadow, background-color, color;
+
+  * {
+    color: #ffffff !important;
+    transition: color 0.25s ease;
+  }
+
+  i {
+    color: #ffffff !important;
+    transition: transform 0.25s ease, color 0.25s ease;
+  }
+
+  &:hover {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #09C82C !important;
+    border-color: #09C82C !important;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 18px rgba(9, 200, 44, 0.25) !important;
+
+    * {
+      color: #09C82C !important;
+    }
+
+    i {
+      color: #09C82C !important;
+      transform: scale(1.18);
+    }
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98) !important;
+    box-shadow: 0 2px 6px rgba(9, 200, 44, 0.15) !important;
+  }
+}
+
+.view-profile-btn {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  &:hover {
+    background-color: #0dcaf0 !important;
+    border-color: #0dcaf0 !important;
+    color: #000000 !important;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 16px rgba(13, 202, 240, 0.35) !important;
+    * { color: #000000 !important; }
+  }
+}
+
+.delete-emp-btn {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  &:hover {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.35) !important;
+    * { color: #ffffff !important; }
+  }
+}
+
+/* Nav Pill Tab Hover & Active Action */
+.nav-pills .nav-link {
+  &:hover {
+    background-color: rgba(9, 200, 44, 0.12) !important;
+    border-color: #09C82C !important;
+    color: #09C82C !important;
+    transform: translateY(-1px);
+  }
+}
+
+.nav-pills .nav-link.active,
+.nav-pills .nav-link.active:hover {
+  background-color: #09C82C !important;
+  border-color: #09C82C !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(9, 200, 44, 0.3) !important;
+  transform: translateY(-1px);
+
+  * {
+    color: #ffffff !important;
+  }
+}
+
+/* Modal Close Button Hover Action */
+.btn-close {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  &:hover {
+    transform: rotate(90deg) scale(1.15);
+    opacity: 1 !important;
+  }
+}
+
+/* Table Row Hover Action */
+.table tbody tr {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    background-color: rgba(9, 200, 44, 0.04) !important;
+    box-shadow: inset 3px 0 0 #09C82C, 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+}
+
+/* Card Hover Elevation */
+.card,
+.experience-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+  &:hover {
+    border-color: rgba(9, 200, 44, 0.3) !important;
+  }
+}
+
+.experience-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07) !important;
+}
+
+/* Avatar Hover Zoom & Ring Glow */
+.avatar {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  img {
+    transition: transform 0.3s ease;
+  }
+  &:hover {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 3px rgba(9, 200, 44, 0.3) !important;
+    img {
+      transform: scale(1.1);
+    }
+  }
+}
+
+/* Footer Button Hover Action */
 footer.bg-dark .btn:hover,
 footer.bg-dark .footer-signup-btn:hover,
 .footer-signup-btn:hover {
@@ -73,24 +285,13 @@ footer.bg-dark .footer-signup-btn:hover,
   background: #ffffff !important;
   border-color: #09C82C !important;
   color: #09C82C !important;
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.25) !important;
 }
 
 footer.bg-dark .btn:hover *,
 footer.bg-dark .footer-signup-btn:hover *,
 .footer-signup-btn:hover * {
   color: #09C82C !important;
-}
-
-/* Active Nav Pill Tab */
-.nav-pills .nav-link.active,
-.nav-pills .nav-link.active:hover {
-  background-color: #09C82C !important;
-  border-color: #09C82C !important;
-  color: #ffffff !important;
-}
-
-.nav-pills .nav-link.active * {
-  color: #ffffff !important;
 }
 
 .circle-bg {
@@ -105,63 +306,61 @@ footer.bg-dark .footer-signup-btn:hover *,
   filter: blur(48px);
 }
 
-// pulse wave
-
+// Pulse wave
 .play-btn {
-    font-size: 24px;
-    line-height: 32px;
-    position: relative;
-    background-color: rgba($primary, 0.85);
-    &:before {
-        content: "";
-        position: absolute;
-        width: 150%;
-        height: 150%;
-        -webkit-animation-delay: 0s;
-        animation-delay: 0s;
-        -webkit-animation: pulsate1 2s;
-        animation: pulsate1 2s;
-        -webkit-animation-direction: forwards;
-        animation-direction: forwards;
-        -webkit-animation-iteration-count: infinite;
-        animation-iteration-count: infinite;
-        -webkit-animation-timing-function: steps;
-        animation-timing-function: steps;
-        opacity: 1;
-        border-radius: 50%;
-        border: 5px solid var(--#{$prefix}border-color);
-        box-shadow: rgba(0, 0, 0, 0.3) 0px 2px 4px 0px;
-    }
+  font-size: 24px;
+  line-height: 32px;
+  position: relative;
+  background-color: rgba($primary, 0.85);
+  &:before {
+    content: "";
+    position: absolute;
+    width: 150%;
+    height: 150%;
+    -webkit-animation-delay: 0s;
+    animation-delay: 0s;
+    -webkit-animation: pulsate1 2s;
+    animation: pulsate1 2s;
+    -webkit-animation-direction: forwards;
+    animation-direction: forwards;
+    -webkit-animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
+    -webkit-animation-timing-function: steps;
+    animation-timing-function: steps;
+    opacity: 1;
+    border-radius: 50%;
+    border: 5px solid var(--#{$prefix}border-color);
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 2px 4px 0px;
+  }
 }
 
 @-webkit-keyframes pulsate1 {
-    0% {
-        -webkit-transform: scale(0.8);
-        transform: scale(0.8);
-        opacity: 1;
-    }
-    100% {
-        -webkit-transform: scale(1);
-        transform: scale(1);
-        opacity: 0;
-        box-shadow: none;
-    }
+  0% {
+    -webkit-transform: scale(0.8);
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    opacity: 0;
+    box-shadow: none;
+  }
 }
 
 @keyframes pulsate1 {
-    0% {
-        -webkit-transform: scale(0.8);
-        transform: scale(0.8);
-        opacity: 1;
-    }
-    100% {
-        -webkit-transform: scale(1, 1);
-        transform: scale(1);
-        opacity: 0;
-        box-shadow: none;
-    }
+  0% {
+    -webkit-transform: scale(0.8);
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    -webkit-transform: scale(1, 1);
+    transform: scale(1);
+    opacity: 0;
+    box-shadow: none;
+  }
 }
-
 
 @import "./avatar";
 @import "./button";
@@ -169,15 +368,17 @@ footer.bg-dark .footer-signup-btn:hover *,
 @import "./utilities";
 @import "./card";
 
-/* Employee Management System Custom Styles */
+/* File Upload Zone Hover Action */
 .file-upload-zone {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   border-style: dashed !important;
   border-color: rgba($primary, 0.3) !important;
   background-color: rgba($primary, 0.02) !important;
   &:hover {
     border-color: $primary !important;
-    background-color: rgba($primary, 0.05) !important;
+    background-color: rgba($primary, 0.06) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(9, 200, 44, 0.15) !important;
   }
 }
 
@@ -292,7 +493,6 @@ footer.bg-dark {
   background-color: #121316 !important;
 }
 
-
 /* Generous Vertical Spacing Between Main Dashboard Sections & Divs */
 .main-title-header {
   margin-bottom: 3.5rem !important;
@@ -343,6 +543,48 @@ footer.bg-dark {
   }
 }
 
+/* Pulse Glow Animation for Targeted Experience Form Navigation */
+.pulse-focus {
+  animation: cardPulseGlow 2.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardPulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(9, 200, 44, 0.7) !important;
+    border-color: #09C82C !important;
+  }
+  40% {
+    box-shadow: 0 0 0 12px rgba(9, 200, 44, 0.25) !important;
+    border-color: #09C82C !important;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(9, 200, 44, 0) !important;
+  }
+}
+
+/* Card-level Employee Demographics Sub-Section (History #2+ cards) */
+.card-demographics-section {
+  border-left: 4px solid #09C82C !important;
+  background: rgba(9, 200, 44, 0.04) !important;
+  transition: border-color 0.25s ease, background 0.25s ease;
+
+  h6 {
+    font-size: 0.85rem;
+  }
+
+  .form-control[readonly] {
+    background-color: #f1f5f9 !important;
+    color: #64748b !important;
+    cursor: not-allowed;
+    border-color: #e2e8f0 !important;
+  }
+
+  .form-control:not([readonly]):focus {
+    border-color: #09C82C !important;
+    box-shadow: 0 0 0 3px rgba(9, 200, 44, 0.15) !important;
+  }
+}
+
 /* Remove tick / checkmark icon on valid form inputs */
 .form-control.is-valid,
 .form-select.is-valid,
@@ -350,4 +592,74 @@ footer.bg-dark {
 .was-validated .form-select:valid {
   background-image: none !important;
   padding-right: 0.75rem !important;
+}
+
+/* Landing Page & Attendance Module Styles */
+.landing-module-card {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08) !important;
+  }
+}
+
+.landing-card-attendance:hover {
+  border-color: #0dcaf0 !important;
+  box-shadow: 0 16px 32px rgba(13, 202, 240, 0.18) !important;
+}
+
+.landing-card-verification {
+  border-color: #09C82C !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.landing-card-verification:hover {
+  border-color: #09C82C !important;
+  box-shadow: 0 16px 36px rgba(9, 200, 44, 0.28) !important;
+}
+
+.badge-attendance-present {
+  background-color: rgba(9, 200, 44, 0.12) !important;
+  color: #09C82C !important;
+  border: 1px solid rgba(9, 200, 44, 0.3) !important;
+}
+
+.badge-attendance-late {
+  background-color: rgba(255, 193, 7, 0.15) !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(255, 193, 7, 0.4) !important;
+}
+
+.badge-attendance-absent {
+  background-color: rgba(220, 53, 69, 0.12) !important;
+  color: #dc3545 !important;
+  border: 1px solid rgba(220, 53, 69, 0.3) !important;
+}
+
+/* High-Contrast Typography & Readability Overrides */
+.text-muted,
+.text-secondary {
+  color: #475569 !important; /* Dark Slate Grey for sharp contrast */
+}
+
+.text-dark-subtle {
+  color: #334155 !important;
+}
+
+.landing-module-card p {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+.landing-module-card ul li {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.badge-attendance-leave {
+  background-color: rgba(108, 117, 125, 0.12) !important;
+  color: #475569 !important;
+  border: 1px solid rgba(108, 117, 125, 0.3) !important;
 }

@@ -16,6 +16,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+  <!-- Razorpay Checkout JS SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
   <!-- JavaScript Module -->
   <script type="module" src="./assets/js/main.js"></script>
 </head>
@@ -24,18 +27,33 @@
   <!-- Navbar Start -->
   <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
     <div class="container-fluid px-3 px-md-5">
-      <a class="navbar-brand d-inline-flex gap-2 align-items-center lh-1" href="index.html">
+      <a class="navbar-brand d-inline-flex gap-2 align-items-center lh-1" href="javascript:void(0);" id="brand-home-link">
         <span class="text-primary">
           <i class="ti ti-shield-check fs-2 text-primary"></i>
         </span>
-        <span class="fw-bold fs-4 text-dark">Verification</span>
+        <span class="fw-bold fs-4 text-dark">Verification & Attendance</span>
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav mx-auto gap-1 my-2 my-lg-0">
+          <a class="nav-link px-3 py-2 rounded-pill fw-semibold text-dark active" href="javascript:void(0);" id="nav-link-landing">
+            <i class="ti ti-home me-1"></i> Home
+          </a>
+          <a class="nav-link px-3 py-2 rounded-pill fw-semibold text-dark" href="javascript:void(0);" id="nav-link-attendance">
+            <i class="ti ti-clock-check text-info me-1"></i> Attendance System
+          </a>
+          <a class="nav-link px-3 py-2 rounded-pill fw-semibold text-dark" href="javascript:void(0);" id="nav-link-verification">
+            <i class="ti ti-shield-check text-success me-1"></i> Verification System
+          </a>
+        </div>
+
         <div class="d-flex gap-2 align-items-center ms-auto">
+          <button type="button" class="btn btn-success text-white rounded-pill px-3 py-2 fw-bold shadow-sm me-1" data-bs-toggle="modal" data-bs-target="#razorpayPaymentModal" id="nav-razorpay-btn">
+            <i class="ti ti-credit-card me-1"></i> Pay via Razorpay
+          </button>
           <button type="button" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-medium" data-bs-toggle="modal"
             data-bs-target="#signInModal">
             <i class="ti ti-login me-1"></i> Sign In
@@ -49,8 +67,572 @@
     </div>
   </nav>
 
-  <!-- Employee Management Portal Section -->
-  <section class="py-5 bg-light-subtle position-relative border-bottom min-vh-100" id="employee-portal">
+  <!-- 0. Landing Page Gateway Section -->
+  <section class="py-5 bg-white position-relative min-vh-100 d-flex align-items-center" id="landing-portal-section">
+    <div class="container-xxl px-4 px-md-5 py-4">
+      <div class="text-center max-w-3xl mx-auto mb-5">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-bold text-uppercase mb-3">
+          <i class="ti ti-sparkles me-1"></i> Unified Workforce Platform
+        </span>
+        <h1 class="display-5 fw-extrabold text-dark mb-3">Attendance & Background Verification System</h1>
+        <p class="text-dark fw-semibold fs-5 leading-relaxed" style="color: #334155 !important;">
+          Select a workforce module below to manage daily employee check-ins & attendance, or perform comprehensive background verification with scannable barcode passes.
+        </p>
+      </div>
+
+      <!-- Module Gateway Cards (3-Column Layout) -->
+      <div class="row g-4 justify-content-center align-items-stretch max-w-6xl mx-auto">
+
+        <!-- Module 1: Attendance System Card -->
+        <div class="col-lg-4 col-md-6">
+          <div class="card h-100 border border-info border-2 shadow-sm rounded-4 p-4 bg-body landing-module-card landing-card-attendance d-flex flex-column justify-content-between" id="card-launch-attendance">
+            <div>
+              <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="avatar bg-info-subtle text-info rounded-4 d-flex align-items-center justify-content-center p-3" style="width: 56px; height: 56px;">
+                  <i class="ti ti-clock-check fs-2"></i>
+                </div>
+                <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1.5 rounded-pill fw-bold text-xs">MODULE 01</span>
+              </div>
+              <h4 class="fw-bold text-dark mb-2">Attendance System</h4>
+              <p class="text-dark-subtle text-xs leading-relaxed mb-4 fw-medium" style="color: #475569 !important;">
+                Track daily employee check-in & check-out logs, scan webcam QR pass check-ins, record work locations (In-Office, Remote, Field), and manage attendance status (*Present, Late, Remote, On Leave*).
+              </p>
+              <ul class="list-unstyled text-xs fw-semibold text-dark d-flex flex-column gap-2 mb-4" style="color: #1e293b !important;">
+                <li><i class="ti ti-circle-check-filled text-info me-1.5"></i> Live Camera QR Attendance Scanner</li>
+                <li><i class="ti ti-circle-check-filled text-info me-1.5"></i> Real-time Daily Attendance Logger</li>
+                <li><i class="ti ti-circle-check-filled text-info me-1.5"></i> Filterable Attendance Directory Table</li>
+              </ul>
+            </div>
+            <div>
+              <button type="button" class="btn btn-outline-info btn-md w-100 py-2.5 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                <i class="ti ti-clock-check me-1"></i> Launch Attendance Portal <i class="ti ti-arrow-right ms-1"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 2: New Barcode Generator Card -->
+        <div class="col-lg-4 col-md-6">
+          <div class="card h-100 border border-success border-2 shadow-sm rounded-4 p-4 bg-body landing-module-card landing-card-verification d-flex flex-column justify-content-between" id="card-launch-generate">
+            <div>
+              <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="avatar bg-success-subtle text-success rounded-4 d-flex align-items-center justify-content-center p-3" style="width: 56px; height: 56px;">
+                  <i class="ti ti-qrcode fs-2"></i>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-bold text-xs">MODULE 02</span>
+              </div>
+              <h4 class="fw-bold text-dark mb-2">New Barcode Generator</h4>
+              <p class="text-dark-subtle text-xs leading-relaxed mb-4 fw-medium" style="color: #475569 !important;">
+                Fill employee demographics, enter multi-employment history, auto-calculate annual salary in ₹, attach mandatory salary slips, and generate scannable 1D Barcode Passes.
+              </p>
+              <ul class="list-unstyled text-xs fw-semibold text-dark d-flex flex-column gap-2 mb-4" style="color: #1e293b !important;">
+                <li><i class="ti ti-circle-check-filled text-success me-1.5"></i> Multi-Experience Demographics Form</li>
+                <li><i class="ti ti-circle-check-filled text-success me-1.5"></i> Auto Salary Calculation & Slip Storage</li>
+                <li><i class="ti ti-circle-check-filled text-success me-1.5"></i> Instant Code128 1D Barcode Generation</li>
+              </ul>
+            </div>
+            <div>
+              <button type="button" class="btn btn-outline-success btn-md w-100 py-2.5 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                <i class="ti ti-plus me-1"></i> Open Barcode Generator Form <i class="ti ti-arrow-right ms-1"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 3: Verification Directory & Scanner Card -->
+        <div class="col-lg-4 col-md-12">
+          <div class="card h-100 border border-success border-2 shadow-sm rounded-4 p-4 bg-body landing-module-card landing-card-verification d-flex flex-column justify-content-between" id="card-launch-verification">
+            <div>
+              <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="avatar bg-success-subtle text-success rounded-4 d-flex align-items-center justify-content-center p-3" style="width: 56px; height: 56px;">
+                  <i class="ti ti-shield-check fs-2"></i>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-bold text-xs">MODULE 03</span>
+              </div>
+              <h4 class="fw-bold text-dark mb-2">Verification & Database</h4>
+              <p class="text-dark-subtle text-xs leading-relaxed mb-4 fw-medium" style="color: #475569 !important;">
+                Scan camera/webcam barcodes, upload barcode image files, search employee codes, and browse the registered employee database directory & verified profile timelines.
+              </p>
+              <ul class="list-unstyled text-xs fw-semibold text-dark d-flex flex-column gap-2 mb-4" style="color: #1e293b !important;">
+                <li><i class="ti ti-circle-check-filled text-success me-1.5"></i> Live Webcam & File Image Scanner</li>
+                <li><i class="ti ti-circle-check-filled text-success me-1.5"></i> Relational PostgreSQL Employee Store</li>
+                <li><i class="ti ti-circle-check-filled text-success me-1.5"></i> Verified Profile & QR Pass Badges</li>
+              </ul>
+            </div>
+            <div>
+              <button type="button" class="btn btn-outline-success btn-md w-100 py-2.5 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                <i class="ti ti-search me-1"></i> Open Scanner & Directory <i class="ti ti-arrow-right ms-1"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 0.5 Company Attendance Auth Blank White Page Section -->
+  <section class="py-5 bg-white position-relative min-vh-100 d-flex flex-column justify-content-between d-none" id="attendance-auth-portal-section">
+    <div class="container-xxl px-4 px-md-5">
+      <!-- Top Switcher Bar -->
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold text-xs text-dark" id="btn-attendance-auth-back">
+          <i class="ti ti-arrow-left me-1"></i> Back to Landing Page
+        </button>
+        <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-bold">
+          <i class="ti ti-building me-1"></i> Company Attendance Access Portal
+        </span>
+      </div>
+
+      <!-- Centered Auth Card on Blank White Page (Centered & Max-Width 520px) -->
+      <div class="mx-auto my-auto py-2" style="max-width: 520px; width: 100%;">
+        <div class="card border border-light-subtle rounded-4 shadow-lg overflow-hidden bg-body">
+          <div class="card-header bg-info bg-gradient text-white p-4 text-center">
+            <div class="avatar bg-white text-info rounded-circle d-flex align-items-center justify-content-center p-3 mx-auto mb-3 shadow-sm" style="width: 56px; height: 56px;">
+              <i class="ti ti-building fs-2 text-info"></i>
+            </div>
+            <h5 class="fw-bold text-white mb-1">Company Attendance Access Portal</h5>
+            <p class="text-white-50 text-xs mb-0">Sign in or register your company to launch attendance check-in & logs</p>
+          </div>
+
+          <div class="card-body p-4 bg-light-subtle">
+
+            <div class="tab-content" id="attendanceAuthTabContent">
+
+              <!-- Tab 1: Company Sign In -->
+              <div class="tab-pane fade show active" id="content-comp-login" role="tabpanel">
+                <form id="form-company-login" class="row g-3">
+                  <div class="col-12">
+                    <label for="comp-login-user" class="form-label fw-medium text-dark text-xs">Username or Company Email <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-white"><i class="ti ti-user text-muted"></i></span>
+                      <input type="text" class="form-control" id="comp-login-user" placeholder="e.g. admin_acme or admin@company.com" required>
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <label for="comp-login-pass" class="form-label fw-medium text-dark text-xs">Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-white"><i class="ti ti-lock text-muted"></i></span>
+                      <input type="password" class="form-control" id="comp-login-pass" placeholder="••••••••" required>
+                      <button type="button" class="btn btn-outline-secondary bg-white text-muted border-start-0" id="btn-toggle-comp-login-pass" title="Toggle password visibility">
+                        <i class="ti ti-eye" id="icon-toggle-comp-pass"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="col-12 d-flex align-items-center justify-content-between text-xs">
+                    <div class="form-check">
+                      <input class="form-check-input cursor-pointer" type="checkbox" id="comp-remember-me">
+                      <label class="form-check-label text-muted cursor-pointer" for="comp-remember-me">Remember Username</label>
+                    </div>
+                    <a href="javascript:void(0);" class="text-info fw-semibold text-decoration-none" id="link-comp-forgot-password">
+                      Forgot Password?
+                    </a>
+                  </div>
+
+                  <div class="col-12 pt-1">
+                    <button type="submit" class="btn btn-info text-white btn-md w-100 py-2.5 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                      <i class="ti ti-login me-1"></i> Sign In & Launch Attendance System
+                    </button>
+                  </div>
+
+                  <div class="col-12 text-center pt-1">
+                    <span class="text-muted text-xs">Don't have a registered company account?</span>
+                    <a href="javascript:void(0);" class="text-info text-xs fw-bold text-decoration-none ms-1" id="link-switch-to-register">Register Company Here</a>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Tab 2: Register New Company (All 7 requested fields) -->
+              <div class="tab-pane fade" id="content-comp-register" role="tabpanel">
+                <form id="form-company-register" class="row g-3">
+
+                  <!-- 1. Industry Type -->
+                  <div class="col-12">
+                    <label for="comp-reg-industry" class="form-label fw-medium text-dark text-xs">Industry Type <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="comp-reg-industry" placeholder="e.g. Information Technology & Services" list="industry-types-list" required>
+                  </div>
+
+                  <!-- 2. Company Name -->
+                  <div class="col-12">
+                    <label for="comp-reg-name" class="form-label fw-medium text-dark text-xs">Company Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="comp-reg-name" placeholder="e.g. Acme Corporation" required>
+                  </div>
+
+                  <!-- 3. Company Address -->
+                  <div class="col-12">
+                    <label for="comp-reg-address" class="form-label fw-medium text-dark text-xs">Company Address <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="comp-reg-address" placeholder="e.g. 123 Tech Park, Suite 400, City, Country" required>
+                  </div>
+
+                  <!-- 4. Company Mail / Email -->
+                  <div class="col-md-6">
+                    <label for="comp-reg-email" class="form-label fw-medium text-dark text-xs">Company Mail <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="comp-reg-email" placeholder="e.g. admin@company.com" required>
+                  </div>
+
+                  <!-- 5. Mobile Number -->
+                  <div class="col-md-6">
+                    <label for="comp-reg-mobile" class="form-label fw-medium text-dark text-xs">Mobile Number <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control" id="comp-reg-mobile" placeholder="e.g. 9876543210" maxlength="10" pattern="[0-9]{10}" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                  </div>
+
+                  <!-- 6. Username -->
+                  <div class="col-md-6">
+                    <label for="comp-reg-username" class="form-label fw-medium text-dark text-xs">Username <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="comp-reg-username" placeholder="e.g. acme_admin" pattern="[A-Za-z0-9_]+" required>
+                  </div>
+
+                  <!-- 7. Password -->
+                  <div class="col-md-6">
+                    <label for="comp-reg-password" class="form-label fw-medium text-dark text-xs">Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="comp-reg-password" placeholder="••••••••" required>
+                  </div>
+
+                  <div class="col-12 pt-2">
+                    <button type="submit" class="btn btn-info text-white btn-md w-100 py-2.5 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                      <i class="ti ti-check me-1"></i> Register Company & Launch Attendance Portal
+                    </button>
+                  </div>
+
+                  <div class="col-12 text-center pt-1">
+                    <span class="text-muted text-xs">Already have a registered company account?</span>
+                    <a href="javascript:void(0);" class="text-info text-xs fw-bold text-decoration-none ms-1" id="link-switch-to-login">Sign In Here</a>
+                  </div>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1. Attendance System Module Section -->
+  <section class="py-5 bg-light-subtle position-relative border-bottom min-vh-100 d-none" id="attendance-portal-section">
+    <div class="container-xxl px-4 px-md-5">
+
+      <!-- Top Switcher Header Bar -->
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 p-3 bg-white rounded-4 shadow-sm border border-light-subtle">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold text-xs text-dark d-flex align-items-center" id="btn-attendance-back-landing">
+          <i class="ti ti-arrow-left me-1.5 fs-6"></i> Back to Landing Page
+        </button>
+
+        <div class="d-flex flex-wrap align-items-center gap-2.5 ms-auto">
+          <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-bold text-xs d-inline-flex align-items-center">
+            <i class="ti ti-clock-check me-1.5 fs-6"></i> Attendance System & Daily Punch-In
+          </span>
+          <span id="company-active-badge-container"></span>
+          <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold d-none" id="btn-company-logout" title="Sign Out Active Company">
+            <i class="ti ti-logout me-1"></i> Logout Company
+          </button>
+        </div>
+      </div>
+
+      <!-- Attendance Stats Cards Row -->
+      <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-success h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">Present Today</div>
+                <div class="fs-2 fw-extrabold text-dark mt-2 lh-1" id="stat-attendance-present">0</div>
+              </div>
+              <div class="avatar bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-user-check fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-warning h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">Late Arrivals</div>
+                <div class="fs-2 fw-extrabold text-dark mt-2 lh-1" id="stat-attendance-late">0</div>
+              </div>
+              <div class="avatar bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-clock-exclamation fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-info h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">Remote Work</div>
+                <div class="fs-2 fw-extrabold text-dark mt-2 lh-1" id="stat-attendance-remote">0</div>
+              </div>
+              <div class="avatar bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-building-laptop fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-secondary h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">On Leave / Absent</div>
+                <div class="fs-2 fw-extrabold text-dark mt-2 lh-1" id="stat-attendance-leave">0</div>
+              </div>
+              <div class="avatar bg-secondary-subtle text-secondary rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-user-x fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Logger & Camera Scanner Box -->
+      <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 p-md-5 mb-5">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom border-light-subtle">
+          <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+            <i class="ti ti-clock me-1 text-info"></i> Daily Attendance Logger & QR Check-In
+          </h4>
+          <div id="attendance-header-company-badge">
+            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-bold text-xs">
+              <i class="ti ti-building me-1"></i> Company: <span id="att-header-company-name" class="fw-extrabold text-dark ms-1">Company Portal</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="row g-4 align-items-stretch">
+          <!-- Left: Universal Biometric Scanner Suite -->
+          <div class="col-lg-5 col-md-12">
+            <div class="p-3.5 bg-light-subtle rounded-4 border border-light-subtle h-100 d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1.5 text-sm">
+                    <i class="ti ti-fingerprint text-info fs-5"></i> Universal Biometric Scanner
+                  </h6>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill text-xs fw-bold px-2.5 py-1">
+                    <i class="ti ti-circle-check me-1"></i> Sensor Ready
+                  </span>
+                </div>
+                <p class="text-muted text-xs leading-relaxed mb-3">
+                  Select biometric modality (QR Pass, Face Recognition, Fingerprint, or Iris) for attendance logging.
+                </p>
+
+                <!-- Biometric Mode Selector Pills -->
+                <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 border shadow-xs" id="biometricModeTabs" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-2 py-1.5 px-2 text-xs fw-bold active" id="tab-bio-qr" data-bs-toggle="pill" data-bs-target="#pane-bio-qr" type="button" role="tab">
+                      <i class="ti ti-qrcode me-1"></i> QR Pass
+                    </button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-2 py-1.5 px-2 text-xs fw-bold" id="tab-bio-face" data-bs-toggle="pill" data-bs-target="#pane-bio-face" type="button" role="tab">
+                      <i class="ti ti-scan-face me-1"></i> Face ID
+                    </button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-2 py-1.5 px-2 text-xs fw-bold" id="tab-bio-finger" data-bs-toggle="pill" data-bs-target="#pane-bio-finger" type="button" role="tab">
+                      <i class="ti ti-fingerprint me-1"></i> Fingerprint
+                    </button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-2 py-1.5 px-2 text-xs fw-bold" id="tab-bio-iris" data-bs-toggle="pill" data-bs-target="#pane-bio-iris" type="button" role="tab">
+                      <i class="ti ti-eye-check me-1"></i> Iris Scan
+                    </button>
+                  </li>
+                </ul>
+
+                <!-- Biometric Tab Content -->
+                <div class="tab-content" id="biometricTabContent">
+                  <!-- Mode 1: QR Pass -->
+                  <div class="tab-pane fade show active" id="pane-bio-qr" role="tabpanel">
+                    <div id="attendance-qr-reader" class="overflow-hidden rounded-3 border bg-black text-white text-center py-4" style="min-height: 230px;"></div>
+                  </div>
+
+                  <!-- Mode 2: Face Recognition -->
+                  <div class="tab-pane fade" id="pane-bio-face" role="tabpanel">
+                    <div class="position-relative overflow-hidden rounded-3 border bg-dark text-white text-center p-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 230px;" id="face-scanner-container">
+                      <div class="face-scan-frame border border-info rounded-circle position-relative p-3 mb-2 d-flex align-items-center justify-content-center" style="width: 120px; height: 120px; border-width: 3px !important; box-shadow: 0 0 20px rgba(13, 202, 240, 0.4);">
+                        <i class="ti ti-user-check text-info" style="font-size: 56px;"></i>
+                      </div>
+                      <div class="text-xs text-white-50 mb-2" id="face-scan-status">Align face within target frame</div>
+                      <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-3.5 py-1.5 fw-bold" id="btn-trigger-face-scan">
+                        <i class="ti ti-camera me-1"></i> Scan & Verify Face ID
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Mode 3: Fingerprint Sensor (Identix™ Hardware Scanner & Capacitive Touch) -->
+                  <div class="tab-pane fade" id="pane-bio-finger" role="tabpanel">
+                    <div class="position-relative overflow-hidden rounded-3 border bg-dark text-white text-center p-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 230px;" id="fingerprint-scanner-container">
+                      <!-- Identix Device Status Badge -->
+                      <div class="d-flex align-items-center gap-1.5 mb-2 bg-success bg-opacity-20 px-2.5 py-1 rounded-pill border border-success border-opacity-50 text-xs">
+                        <i class="ti ti-plug text-success fs-6"></i>
+                        <span class="fw-bold text-success" id="identix-device-name">Identix™ K-Series Active</span>
+                        <span class="badge bg-success text-white text-uppercase" style="font-size: 9px;">USB & TCP/IP</span>
+                      </div>
+
+                      <div class="finger-sensor-btn border border-success rounded-circle p-3 mb-2 cursor-pointer d-flex align-items-center justify-content-center" id="btn-trigger-finger-scan" style="width: 95px; height: 95px; border-width: 3px !important; background: rgba(25, 135, 84, 0.2); box-shadow: 0 0 25px rgba(25, 135, 84, 0.5);" title="Place Finger on Identix Hardware Scanner Glass">
+                        <i class="ti ti-fingerprint text-success" style="font-size: 58px;"></i>
+                      </div>
+
+                      <div class="text-xs text-white-50 mb-2" id="finger-scan-status">Place finger on Identix™ optical scanner glass</div>
+                      
+                      <div class="d-flex align-items-center justify-content-center flex-wrap gap-1.5 mt-1">
+                        <button type="button" class="btn btn-outline-success btn-xs rounded-pill px-2.5 py-1 text-xs fw-bold" id="btn-connect-identix-wifi">
+                          <i class="ti ti-wifi me-1"></i> Connect Wireless Wi-Fi / IP
+                        </button>
+                        <button type="button" class="btn btn-outline-light btn-xs rounded-pill px-2.5 py-1 text-xs fw-bold opacity-75" id="btn-connect-identix-usb">
+                          <i class="ti ti-usb me-1"></i> USB Cable
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Mode 4: Iris / Retina Scanner -->
+                  <div class="tab-pane fade" id="pane-bio-iris" role="tabpanel">
+                    <div class="position-relative overflow-hidden rounded-3 border bg-dark text-white text-center p-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 230px;" id="iris-scanner-container">
+                      <div class="iris-scan-circle border border-warning rounded-circle p-3 mb-2 d-flex align-items-center justify-content-center" style="width: 110px; height: 110px; border-width: 3px !important; background: rgba(255, 193, 7, 0.1); box-shadow: 0 0 25px rgba(255, 193, 7, 0.4);">
+                        <i class="ti ti-eye text-warning" style="font-size: 56px;"></i>
+                      </div>
+                      <div class="text-xs text-white-50 mb-2" id="iris-scan-status">Position eye in front of optical scanner</div>
+                      <button type="button" class="btn btn-warning text-dark btn-sm rounded-pill px-3.5 py-1.5 fw-bold" id="btn-trigger-iris-scan">
+                        <i class="ti ti-scan me-1"></i> Perform Iris Biometric Scan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Manual Attendance Logging Form (Symmetrical 2-Column Grid) -->
+          <div class="col-lg-7 col-md-12">
+            <form id="form-attendance-log" class="row g-3">
+              <!-- Pair 1 -->
+              <div class="col-md-6">
+                <label for="att-employee-select" class="form-label fw-medium text-dark text-xs mb-1">Select Employee <span class="text-danger">*</span></label>
+                <select class="form-select" id="att-employee-select" required>
+                  <option value="">-- Select Employee --</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label for="att-department-select" class="form-label fw-medium text-dark text-xs mb-1">Department <span class="text-danger">*</span></label>
+                <select class="form-select" id="att-department-select" required>
+                  <option value="Engineering" selected>Engineering</option>
+                  <option value="Human Resources">Human Resources</option>
+                  <option value="Sales & Marketing">Sales & Marketing</option>
+                  <option value="Operations">Operations</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Product Management">Product Management</option>
+                  <option value="Design & Creative">Design & Creative</option>
+                  <option value="Quality Assurance">Quality Assurance</option>
+                  <option value="Support">Support</option>
+                </select>
+              </div>
+
+              <!-- Pair 2 -->
+              <div class="col-md-6">
+                <label for="att-date" class="form-label fw-medium text-dark text-xs mb-1">Attendance Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="att-date" required>
+              </div>
+
+              <div class="col-md-6">
+                <label for="att-checkin-time" class="form-label fw-medium text-dark text-xs mb-1">Check-In Time <span class="text-danger">*</span></label>
+                <input type="time" class="form-control" id="att-checkin-time" required>
+              </div>
+
+              <!-- Pair 3 -->
+              <div class="col-md-6">
+                <label for="att-checkout-time" class="form-label fw-medium text-dark text-xs mb-1">Check-Out Time</label>
+                <input type="time" class="form-control" id="att-checkout-time">
+              </div>
+
+              <div class="col-md-6">
+                <label for="att-status" class="form-label fw-medium text-dark text-xs mb-1">Attendance Status <span class="text-danger">*</span></label>
+                <select class="form-select" id="att-status" required>
+                  <option value="Present" selected>Present</option>
+                  <option value="Late">Late Arrival</option>
+                  <option value="Remote">Remote Work</option>
+                  <option value="On Leave">On Leave</option>
+                  <option value="Absent">Absent</option>
+                </select>
+              </div>
+
+              <!-- Pair 4 -->
+              <div class="col-md-6">
+                <label for="att-work-mode" class="form-label fw-medium text-dark text-xs mb-1">Work Location</label>
+                <select class="form-select" id="att-work-mode">
+                  <option value="In-Office" selected>In-Office</option>
+                  <option value="Remote / WFH">Remote / WFH</option>
+                  <option value="Field Visit">Field Visit</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label for="att-notes" class="form-label fw-medium text-dark text-xs mb-1">Attendance Remarks / Notes</label>
+                <input type="text" class="form-control" id="att-notes" placeholder="e.g. Approved half-day or client meeting notes...">
+              </div>
+
+              <div class="col-12 pt-2">
+                <button type="submit" class="btn btn-info text-white btn-lg w-100 py-2.5 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                  <i class="ti ti-check me-1"></i> Log Attendance Entry
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Directory & Log History Table -->
+      <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 p-md-5">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <h4 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+              <i class="ti ti-history text-info"></i> Workforce Attendance Directory
+            </h4>
+            <div class="text-muted text-xs">Real-time attendance punch logs and work duration history</div>
+          </div>
+
+          <!-- Status Filters -->
+          <div class="btn-group" role="group" id="attendance-filter-group">
+            <button type="button" class="btn btn-outline-info btn-sm active text-xs fw-semibold" data-filter="ALL">All Logs</button>
+            <button type="button" class="btn btn-outline-info btn-sm text-xs fw-semibold" data-filter="Present">Present</button>
+            <button type="button" class="btn btn-outline-info btn-sm text-xs fw-semibold" data-filter="Late">Late</button>
+            <button type="button" class="btn btn-outline-info btn-sm text-xs fw-semibold" data-filter="Remote">Remote</button>
+            <button type="button" class="btn btn-outline-info btn-sm text-xs fw-semibold" data-filter="On Leave">Leave</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-uppercase text-xs fw-bold text-muted">
+              <tr>
+                <th>Employee Details</th>
+                <th>Code / ID</th>
+                <th>Department</th>
+                <th>Date</th>
+                <th>Check-In</th>
+                <th>Check-Out</th>
+                <th>Duration</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendance-table-body">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 2. Employee Management Verification Portal Section -->
+  <section class="py-5 bg-light-subtle position-relative border-bottom min-vh-100 d-none" id="employee-portal">
     <div class="container-xxl px-4 px-md-5">
       <div class="text-center max-w-3xl mx-auto main-title-header">
         <h2 class="display-6 fw-bold text-dark mb-3">Employee Demographics, Compensation & QR Barcode System</h2>
@@ -77,31 +659,7 @@
                   <span class="text-muted small">Choose an action below to proceed</span>
                 </div>
 
-                <!-- Action 1: New Barcode Generate -->
-                <div class="p-4 p-md-4.5 mb-4 rounded-3 border border-light-subtle bg-light-subtle transition-all">
-                  <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div class="d-flex align-items-center gap-2">
-                      <div
-                        class="avatar bg-primary-subtle text-primary rounded-3 d-flex align-items-center justify-content-center p-2"
-                        style="width: 44px; height: 44px;">
-                        <i class="ti ti-qrcode fs-4"></i>
-                      </div>
-                      <h5 class="fw-bold text-dark mb-0"> New Barcode Generate</h5>
-                    </div>
-                    <span class="badge bg-primary-subtle text-primary fw-medium px-3 py-1.5 rounded-pill text-xs">NEW
-                      GENERATION</span>
-                  </div>
-                  <p class="text-muted small mb-3.5 leading-relaxed">
-                    Fill employee demographics, enter multi-employment history, auto-calculate annual salary in ₹,
-                    attach salary slips, and generate a scannable 1D Barcode Pass.
-                  </p>
-                  <button type="button" class="btn btn-outline-primary w-100 py-3 px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
-                    id="dashboard-btn-generate">
-                    <i class="ti ti-plus me-1"></i> Open Barcode Generator Form <i class="ti ti-arrow-right ms-1"></i>
-                  </button>
-                </div>
-
-                <!-- Action 2: Import Existing Barcode -->
+                <!-- Registered Employee Directory & Scanner Action -->
                 <div class="p-4 p-md-4.5 rounded-3 border border-light-subtle bg-light-subtle transition-all">
                   <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center gap-2">
@@ -110,7 +668,7 @@
                         style="width: 44px; height: 44px;">
                         <i class="ti ti-scan fs-4"></i>
                       </div>
-                      <h5 class="fw-bold text-dark mb-0"> Import Existing Barcode</h5>
+                      <h5 class="fw-bold text-dark mb-0"> Import & Database Directory</h5>
                     </div>
                     <span class="badge bg-info-subtle text-info fw-medium px-3 py-1.5 rounded-pill text-xs">SCAN &
                       LOOKUP</span>
@@ -705,19 +1263,55 @@
               <form id="employee-form">
                 <!-- Section 1: Employee Demographics -->
                 <div class="card border border-light-subtle shadow-sm mb-4 rounded-3">
-                  <div class="card-header bg-light py-3">
+                  <div class="card-header bg-light py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h5 class="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
                       <i class="ti ti-user text-primary fs-4"></i> Employee Demographics
                     </h5>
+                    <div class="d-flex align-items-center gap-2">
+                      <label for="select-existing-employee" class="text-xs text-muted fw-semibold mb-0 d-none d-sm-inline"><i class="ti ti-search me-1"></i>Select Existing:</label>
+                      <select class="form-select form-select-sm rounded-pill text-xs border-primary-subtle shadow-none" id="select-existing-employee" style="max-width: 260px;">
+                        <option value="">-- Select Existing Employee --</option>
+                      </select>
+                    </div>
                   </div>
                   <div class="card-body p-4">
                     <div class="row g-3">
+                      <!-- Auto-fill Notification Alert -->
+                      <div class="col-12 d-none" id="autofill-banner">
+                        <div class="alert bg-success-subtle text-success border border-success-subtle rounded-3 p-3 mb-0 d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-sm">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="ti ti-user-check fs-3"></i>
+                            <div>
+                              <div class="fw-bold text-dark text-sm">Existing Employee Selected: <span id="autofill-emp-name" class="text-success"></span> (<span id="autofill-emp-code"></span>)</div>
+                              <div class="text-xs text-muted">Demographics auto-fetched. Adding a new experience entry for this employee.</div>
+                            </div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-xs" id="clear-autofill-btn">
+                            <i class="ti ti-x me-1"></i> Clear / New Person
+                          </button>
+                        </div>
+                      </div>
+
                       <div class="col-md-6">
                         <label for="emp-name" class="form-label fw-medium text-dark">Full Name <span
                             class="text-danger">*</span></label>
                         <input type="text" class="form-control form-control-lg" id="emp-name"
-                          placeholder="e.g. Jane Doe" pattern="[A-Za-z .\-']+"
+                          placeholder="e.g. Jane Doe" pattern="[A-Za-z .\-']+" list="existing-employees-datalist"
                           oninput="this.value = this.value.replace(/[^A-Za-z \s\.\-\']/g, '')" required>
+                        <datalist id="existing-employees-datalist"></datalist>
+                        <datalist id="industry-types-list">
+                          <option value="Information Technology & Services"></option>
+                          <option value="Financial Services & Banking"></option>
+                          <option value="Healthcare & Pharmaceuticals"></option>
+                          <option value="Manufacturing & Industrial"></option>
+                          <option value="Education & E-Learning"></option>
+                          <option value="Telecommunications"></option>
+                          <option value="Retail & E-commerce"></option>
+                          <option value="Automotive & Mobility"></option>
+                          <option value="Consulting & Professional Services"></option>
+                          <option value="Real Estate & Construction"></option>
+                          <option value="Media & Entertainment"></option>
+                        </datalist>
                         <div class="invalid-feedback">Full name must contain letters and spaces only (no numbers).</div>
                       </div>
                       <div class="col-md-6">
@@ -742,6 +1336,37 @@
                           placeholder="jane.doe@company.com" required>
                         <div class="invalid-feedback">Please enter a valid email address (e.g. user@domain.com).</div>
                       </div>
+                      <div class="col-12">
+                        <label for="emp-address" class="form-label fw-medium text-dark">Employee Address <span
+                            class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="emp-address"
+                          placeholder="e.g. 123 Tech Park, Suite 400, City, Country" required>
+                        <div class="invalid-feedback">Please enter a valid employee address.</div>
+                      </div>
+
+                      <!-- Employee Photo Upload Field (Below Employee Address) -->
+                      <div class="col-12">
+                        <label class="form-label fw-medium text-dark">Employee Photo</label>
+                        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border">
+                          <div class="position-relative">
+                            <div id="photo-preview-avatar" class="avatar avatar-xl rounded-circle bg-primary-subtle text-primary border border-2 border-primary d-flex align-items-center justify-content-center overflow-hidden shadow-sm" style="width: 72px; height: 72px; min-width: 72px;">
+                              <i class="ti ti-user fs-1" id="photo-placeholder-icon"></i>
+                              <img id="photo-preview-img" class="w-100 h-100 object-fit-cover d-none" alt="Employee Photo Preview">
+                            </div>
+                          </div>
+                          <div class="flex-grow-1">
+                            <input type="file" class="d-none" id="emp-photo-input" accept="image/png, image/jpeg, image/jpg, image/webp">
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill me-2" id="emp-photo-upload-btn">
+                              <i class="ti ti-upload me-1"></i> Upload Photo
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill d-none" id="emp-photo-remove-btn">
+                              <i class="ti ti-trash me-1"></i> Remove Photo
+                            </button>
+                            <div class="text-muted text-xs mt-1">Upload a passport size or square photo (PNG, JPG, max 5MB)</div>
+                            <input type="hidden" id="emp-photo-url" value="">
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -749,8 +1374,8 @@
                 <!-- Section 2: Dynamic Multi-Employment History Array -->
                 <div class="mb-4">
                   <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 text-dark fw-bold d-flex align-items-center gap-2">
-                      <i class="ti ti-history text-primary fs-4"></i> Employment History & Salary Slips
+                    <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="ti ti-history text-primary fs-4"></i> Company History & Salary Slips
                     </h5>
                     <span class="badge bg-info-subtle text-info border border-info-subtle">
                       Multi-Entry Enabled (+ add another option)
@@ -760,12 +1385,7 @@
                   <!-- Container for Dynamic Cards -->
                   <div id="experience-items-container"></div>
 
-                  <div class="text-center my-4">
-                    <button type="button" class="btn btn-outline-primary btn-lg rounded-pill px-4"
-                      id="add-experience-btn">
-                      <i class="ti ti-plus me-1"></i> + Add Another Experience
-                    </button>
-                  </div>
+
                 </div>
 
                 <!-- Alert Notification Container -->
@@ -1073,6 +1693,109 @@
       </div>
     </div>
   </footer>
+
+  <!-- Razorpay Payment & Subscription Modal -->
+  <div class="modal fade" id="razorpayPaymentModal" tabindex="-1" aria-labelledby="razorpayModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+        <div class="modal-header bg-success bg-gradient text-white p-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="avatar bg-white text-success rounded-circle d-flex align-items-center justify-content-center p-2 shadow-sm" style="width: 48px; height: 48px;">
+              <i class="ti ti-brand-razorpay fs-2 text-success"></i>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold text-white mb-0" id="razorpayModalLabel">Razorpay Payment Gateway</h5>
+              <div class="text-white-50 text-xs mt-1">Upgrade your verification limits or purchase verification passes instantly</div>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 p-md-5 bg-light-subtle">
+
+          <!-- Plan Tier Cards -->
+          <div class="row g-3 mb-4">
+            <!-- Plan 1: Single Pass -->
+            <div class="col-md-4">
+              <div class="card h-100 border rounded-4 shadow-sm text-center p-3 transition-all razorpay-plan-card cursor-pointer" data-amount="199" data-plan="Single Verification Pass">
+                <div class="badge bg-light text-dark border align-self-center px-3 py-1 rounded-pill text-xs fw-semibold mb-2">STARTER</div>
+                <h6 class="fw-bold text-dark mb-1">Single Pass</h6>
+                <div class="display-6 fw-bold text-success my-2">₹199</div>
+                <div class="text-muted text-xs mb-3">1 Employee Verification Pass</div>
+                <hr class="my-2">
+                <ul class="list-unstyled text-xs text-muted text-start d-flex flex-column gap-1.5 mb-3">
+                  <li><i class="ti ti-check text-success me-1"></i> 1D Code128 Barcode</li>
+                  <li><i class="ti ti-check text-success me-1"></i> Basic Slip Storage</li>
+                  <li><i class="ti ti-check text-success me-1"></i> Instant QR Scanner</li>
+                </ul>
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill w-100 fw-bold select-plan-btn">Select Plan</button>
+              </div>
+            </div>
+
+            <!-- Plan 2: Pro Verification (Popular) -->
+            <div class="col-md-4">
+              <div class="card h-100 border border-success border-2 shadow rounded-4 text-center p-3 transition-all razorpay-plan-card bg-white active-plan cursor-pointer" data-amount="499" data-plan="Pro Verification Pass">
+                <div class="badge bg-success text-white align-self-center px-3 py-1 rounded-pill text-xs fw-bold mb-2">MOST POPULAR</div>
+                <h6 class="fw-bold text-dark mb-1">Pro Pass</h6>
+                <div class="display-6 fw-bold text-success my-2">₹499</div>
+                <div class="text-muted text-xs mb-3">5 Employee Passes + Priority Sync</div>
+                <hr class="my-2">
+                <ul class="list-unstyled text-xs text-muted text-start d-flex flex-column gap-1.5 mb-3">
+                  <li><i class="ti ti-check text-success me-1"></i> 5 Verification Passes</li>
+                  <li><i class="ti ti-check text-success me-1"></i> Multi-Employment Array</li>
+                  <li><i class="ti ti-check text-success me-1"></i> PostgreSQL Persistence</li>
+                  <li><i class="ti ti-check text-success me-1"></i> Verified Badge Status</li>
+                </ul>
+                <button type="button" class="btn btn-success text-white btn-sm rounded-pill w-100 fw-bold select-plan-btn">Selected</button>
+              </div>
+            </div>
+
+            <!-- Plan 3: Enterprise Unlimited -->
+            <div class="col-md-4">
+              <div class="card h-100 border rounded-4 shadow-sm text-center p-3 transition-all razorpay-plan-card cursor-pointer" data-amount="1499" data-plan="Enterprise Unlimited">
+                <div class="badge bg-primary-subtle text-primary border align-self-center px-3 py-1 rounded-pill text-xs fw-semibold mb-2">ENTERPRISE</div>
+                <h6 class="fw-bold text-dark mb-1">Enterprise</h6>
+                <div class="display-6 fw-bold text-primary my-2">₹1,499</div>
+                <div class="text-muted text-xs mb-3">Unlimited Passes & API Access</div>
+                <hr class="my-2">
+                <ul class="list-unstyled text-xs text-muted text-start d-flex flex-column gap-1.5 mb-3">
+                  <li><i class="ti ti-check text-primary me-1"></i> Unlimited Employee Passes</li>
+                  <li><i class="ti ti-check text-primary me-1"></i> Custom Barcode API</li>
+                  <li><i class="ti ti-check text-primary me-1"></i> 24/7 Priority HR Support</li>
+                </ul>
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill w-100 fw-bold select-plan-btn">Select Plan</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checkout Box & Payment Action -->
+          <div class="card border border-success-subtle bg-white rounded-4 p-4 shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <div>
+                <div class="text-xs text-muted text-uppercase fw-semibold">Selected Checkout Plan</div>
+                <div class="fs-5 fw-bold text-dark" id="razorpay-selected-plan-name">Pro Verification Pass</div>
+                <div class="text-xs text-success fw-medium"><i class="ti ti-shield-lock me-1"></i>Secured with 256-bit Razorpay SSL Encryption</div>
+              </div>
+              <div class="text-end">
+                <div class="text-xs text-muted">Total Payable</div>
+                <div class="fs-2 fw-bold text-success" id="razorpay-selected-amount-display">₹499.00</div>
+              </div>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="d-grid">
+              <button type="button" id="pay-with-razorpay-btn" class="btn btn-success btn-lg py-3 rounded-pill fw-bold text-white shadow d-flex align-items-center justify-content-center gap-2">
+                <i class="ti ti-credit-card fs-4"></i> Proceed to Pay via Razorpay
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
 
   <!-- Bootstrap JS -->
   <script src="./assets/js/main.js" type="module"></script>

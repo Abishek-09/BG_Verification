@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node backend/src/server.js",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -18,15 +22,25 @@
     "apexcharts": "^5.3.6",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "glightbox": "^3.3.1",
     "html5-qrcode": "^2.3.8",
     "jsbarcode": "^3.12.3",
+    "multer": "^2.2.0",
     "qrcode": "^1.5.4",
+    "razorpay": "^2.9.6",
     "sass": "1.77.6",
     "sweetalert2": "^11.26.25",
     "vite": "^6.4.1"
   },
   "devDependencies": {
-    "fast-glob": "^3.3.3"
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "@prisma/config": "^7.9.1",
+    "fast-glob": "^3.3.3",
+    "pg": "^8.23.0",
+    "prisma": "^7.9.1"
   }
 }
