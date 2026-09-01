@@ -10,6 +10,7 @@ router.get('/', personController.getAllPersons);
 router.get('/verify/:query', personController.verifyPerson);
 router.get('/:id', personController.getPersonById);
 router.post('/', personController.createPerson);
+router.post('/:id/deactivate', personController.deactivateEmployee);
 router.delete('/:id', personController.deletePerson);
 
 module.exports = router;

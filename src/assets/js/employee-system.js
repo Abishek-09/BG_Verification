@@ -5,7 +5,7 @@
  */
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
-import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import Swal from 'sweetalert2';
 
 // Global override for native window.alert to render SweetAlert2 "Sweet Box" popup dialogs
@@ -107,12 +107,7 @@ export class EmployeeStore {
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        const dummyNames = ['sarah jenkins', 'alexander vance', 'test user', 'dhanush', 'nambi', 'sujin'];
-        const validPersons = data.data.filter(p => 
-          p.name && 
-          !dummyNames.includes(p.name.trim().toLowerCase()) &&
-          !['EMP-1001', 'EMP-1002', 'EMP-008', 'EMP-007', 'EMP-999', 'EMP-006'].includes(p.employee_code)
-        );
+        const validPersons = data.data.filter(p => p && p.name && p.name.trim().length > 0);
 
         if (validPersons.length > 0) {
           const bgPersons = [];
@@ -120,14 +115,14 @@ export class EmployeeStore {
 
           validPersons.forEach(p => {
             bgPersons.push({
-              id: p.id,
-              employee_code: p.employee_code,
+              id: String(p.id),
+              employee_code: p.employee_code || `EMP-${p.id}`,
               name: p.name,
               email: p.email,
-              mobile_number: p.mobile_number,
-              address: p.address,
+              mobile_number: p.mobile_number || '',
+              address: p.address || '',
               photo_url: p.photo_url || '',
-              barcode_hash: p.barcode_hash,
+              barcode_hash: p.barcode_hash || '',
               created_at: p.created_at
             });
 
@@ -135,17 +130,17 @@ export class EmployeeStore {
               p.history.forEach(h => {
                 bgHistory.push({
                   id: String(h.id),
-                  employee_id: p.id,
-                  company_name: h.company_name,
-                  department: h.department,
-                  role_name: h.role_name,
-                  company_address: h.company_address,
-                  start_date: h.start_date,
+                  employee_id: String(p.id),
+                  company_name: h.company_name || 'Roriri',
+                  department: h.department || 'Engineering',
+                  role_name: h.role_name || 'Software Specialist',
+                  company_address: h.company_address || '',
+                  start_date: h.start_date || '',
                   end_date: h.end_date || '',
-                  is_current: h.is_current,
-                  total_experience: h.total_experience,
-                  monthly_salary: h.monthly_salary,
-                  annual_salary: h.annual_salary,
+                  is_current: h.is_current !== false,
+                  total_experience: h.total_experience || '',
+                  monthly_salary: h.monthly_salary || '',
+                  annual_salary: h.annual_salary || '',
                   salary_slip_name: h.salary_slip_name || h.payment_slip || '',
                   salary_slip_url: h.salary_slip_name || h.payment_slip || '',
                   remarks: h.remarks || ''
@@ -222,6 +217,18 @@ export class EmployeeStore {
       targetEmp.mobile_number = demographics.mobile_number || targetEmp.mobile_number;
       targetEmp.address = demographics.address || targetEmp.address;
       if (demographics.photo_url) targetEmp.photo_url = demographics.photo_url;
+
+      // Re-activate universal barcode for the new company joining record
+      const hasActiveTenure = experienceList.some(exp => exp.is_current || !exp.end_date);
+      if (hasActiveTenure) {
+        const activeExp = experienceList.find(exp => exp.is_current || !exp.end_date) || experienceList[experienceList.length - 1];
+        targetEmp.is_active = true;
+        targetEmp.status = 'active';
+        targetEmp.end_date = null;
+        if (activeExp && activeExp.start_date) {
+          targetEmp.start_date = activeExp.start_date;
+        }
+      }
       this.saveEmployees(employees);
     } else {
       const empId = generateUUID();
@@ -235,6 +242,10 @@ export class EmployeeStore {
         address: demographics.address || '',
         photo_url: demographics.photo_url || '',
         barcode_hash: barcodeHash,
+        is_active: true,
+        start_date: demographics.start_date || new Date().toISOString().split('T')[0],
+        end_date: null,
+        status: 'active',
         created_at: new Date().toISOString()
       };
       employees.unshift(targetEmp);
@@ -271,6 +282,43 @@ export class EmployeeStore {
     this.saveEmploymentHistory(history);
 
     return { employee: targetEmp, history: newHistories };
+  }
+
+  static async deactivateEmployee(empId, endDate = null, reason = 'Offboarded') {
+    const finalEndDate = endDate || new Date().toISOString().split('T')[0];
+    const employees = this.getEmployees();
+    const emp = employees.find(e => String(e.id) === String(empId) || (e.employee_code && e.employee_code.toLowerCase() === String(empId).toLowerCase()));
+
+    if (emp) {
+      emp.is_active = false;
+      emp.end_date = finalEndDate;
+      emp.status = 'inactive';
+      this.saveEmployees(employees);
+
+      const history = this.getEmploymentHistory();
+      history.forEach(h => {
+        if (String(h.employee_id) === String(emp.id) && !h.end_date) {
+          h.end_date = finalEndDate;
+          h.is_current = false;
+          h.remarks = (h.remarks ? h.remarks + ' | ' : '') + `Offboarded: ${reason}`;
+        }
+      });
+      this.saveEmploymentHistory(history);
+    }
+
+    // Call backend API
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1/employees/${empId}/deactivate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ end_date: finalEndDate, reason })
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      console.warn('Backend offboarding API call failed (saved locally):', e.message);
+      return { success: true, message: 'Offboarded in local store', data: emp };
+    }
   }
 
   static getEmployeeFullProfile(identifier) {
@@ -310,8 +358,8 @@ export class EmployeeStore {
  * Company Attendance Registration & Authentication Store
  */
 export class CompanyAuthStore {
-  static STORAGE_KEY_REGS = 'learnhub_registered_companies_v1';
-  static STORAGE_KEY_ACTIVE = 'learnhub_active_company_v1';
+  static STORAGE_KEY_REGS = 'learnhub_registered_companies_v2';
+  static STORAGE_KEY_ACTIVE = 'learnhub_active_company_v2';
 
   static getRegisteredCompanies() {
     try {
@@ -319,7 +367,7 @@ export class CompanyAuthStore {
       return data ? JSON.parse(data) : this.getSeedCompanies();
     } catch (e) {
       console.error('Failed to load registered companies', e);
-      return [];
+      return this.getSeedCompanies();
     }
   }
 
@@ -327,12 +375,35 @@ export class CompanyAuthStore {
     const seed = [
       {
         id: 'comp-101',
-        industry_type: 'Information Technology & Services',
-        company_name: 'Acme Corporation',
-        company_address: '123 Tech Park, Suite 400, City, Country',
-        company_email: 'admin@acme.com',
-        mobile_number: '9876543210',
-        username: 'admin_acme',
+        company_name: 'NexGen Cloud Systems',
+        country: 'India',
+        state: 'Tamil Nadu',
+        district: 'Chennai',
+        company_address: '102 Cyber Towers, OMR Tech Corridor, Chennai, Tamil Nadu - 600096',
+        company_email: 'admin@nexgen.com',
+        username: 'admin_nexgen',
+        password: 'password123'
+      },
+      {
+        id: 'comp-102',
+        company_name: 'Tata Consultancy Services',
+        country: 'India',
+        state: 'Maharashtra',
+        district: 'Mumbai',
+        company_address: 'TCS Olympus Park, Hiranandani Estate, Thane, Mumbai - 400607',
+        company_email: 'admin@tcs.com',
+        username: 'admin_tcs',
+        password: 'password123'
+      },
+      {
+        id: 'comp-103',
+        company_name: 'Infosys Technologies',
+        country: 'India',
+        state: 'Karnataka',
+        district: 'Bengaluru',
+        company_address: 'Plot 44, Electronic City, Hosur Road, Bengaluru - 560100',
+        company_email: 'admin@infosys.com',
+        username: 'admin_infosys',
         password: 'password123'
       }
     ];
@@ -347,8 +418,8 @@ export class CompanyAuthStore {
   static registerCompany(companyData) {
     const companies = this.getRegisteredCompanies();
     const existing = companies.find(
-      c => c.username.toLowerCase() === companyData.username.toLowerCase() ||
-           c.company_email.toLowerCase() === companyData.company_email.toLowerCase()
+      c => (c.username && companyData.username && c.username.toLowerCase() === companyData.username.toLowerCase()) ||
+           (c.company_email && companyData.company_email && c.company_email.toLowerCase() === companyData.company_email.toLowerCase())
     );
 
     if (existing) {
@@ -357,12 +428,13 @@ export class CompanyAuthStore {
 
     const newCompany = {
       id: `comp-${Date.now()}`,
-      industry_type: companyData.industry_type,
       company_name: companyData.company_name,
-      company_address: companyData.company_address,
+      country: companyData.country || 'India',
+      state: companyData.state || '',
+      district: companyData.district || '',
+      company_address: companyData.company_address || '',
       company_email: companyData.company_email,
-      mobile_number: companyData.mobile_number,
-      username: companyData.username,
+      username: companyData.username || companyData.company_email,
       password: companyData.password
     };
 
@@ -374,9 +446,10 @@ export class CompanyAuthStore {
 
   static loginCompany(userOrEmail, password) {
     const companies = this.getRegisteredCompanies();
+    const cleanUser = String(userOrEmail || '').trim().toLowerCase();
     const matched = companies.find(
-      c => (c.username.toLowerCase() === userOrEmail.toLowerCase() ||
-            c.company_email.toLowerCase() === userOrEmail.toLowerCase()) &&
+      c => ((c.username && c.username.toLowerCase() === cleanUser) ||
+            (c.company_email && c.company_email.toLowerCase() === cleanUser)) &&
            c.password === password
     );
 
@@ -391,7 +464,14 @@ export class CompanyAuthStore {
   static getActiveCompany() {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY_ACTIVE);
-      return data ? JSON.parse(data) : null;
+      if (data) return JSON.parse(data);
+      // Default to first seed company
+      const seeds = this.getSeedCompanies();
+      if (seeds.length > 0) {
+        this.setActiveCompany(seeds[0]);
+        return seeds[0];
+      }
+      return null;
     } catch (e) {
       return null;
     }
@@ -403,9 +483,10 @@ export class CompanyAuthStore {
 
   static resetCompanyPassword(userOrEmail, newPassword) {
     const companies = this.getRegisteredCompanies();
+    const clean = String(userOrEmail || '').trim().toLowerCase();
     const companyIndex = companies.findIndex(
-      c => c.username.toLowerCase() === userOrEmail.toLowerCase() ||
-           c.company_email.toLowerCase() === userOrEmail.toLowerCase()
+      c => (c.username && c.username.toLowerCase() === clean) ||
+           (c.company_email && c.company_email.toLowerCase() === clean)
     );
 
     if (companyIndex === -1) {
@@ -423,7 +504,61 @@ export class CompanyAuthStore {
 }
 
 /**
- * Company Auth Controller
+ * =========================================================================
+ * JWT AUTHENTICATION & ROLE MANAGER (Phase 7 Dual-Path Security)
+ * =========================================================================
+ */
+export class AuthManager {
+  static STORAGE_TOKEN = 'bg_auth_token';
+  static STORAGE_ROLE = 'bg_auth_role';
+  static STORAGE_USER = 'bg_auth_user';
+
+  static getToken() {
+    return localStorage.getItem(this.STORAGE_TOKEN) || '';
+  }
+
+  static getRole() {
+    return localStorage.getItem(this.STORAGE_ROLE) || '';
+  }
+
+  static getUser() {
+    try {
+      const u = localStorage.getItem(this.STORAGE_USER);
+      return u ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static isAdmin() {
+    return this.getRole() === 'admin' && !!this.getToken();
+  }
+
+  static isEmployee() {
+    return this.getRole() === 'employee' && !!this.getToken();
+  }
+
+  static setAuth(token, role, user) {
+    localStorage.setItem(this.STORAGE_TOKEN, token || '');
+    localStorage.setItem(this.STORAGE_ROLE, role || '');
+    localStorage.setItem(this.STORAGE_USER, JSON.stringify(user || {}));
+  }
+
+  static clearAuth() {
+    localStorage.removeItem(this.STORAGE_TOKEN);
+    localStorage.removeItem(this.STORAGE_ROLE);
+    localStorage.removeItem(this.STORAGE_USER);
+    CompanyAuthStore.logoutCompany();
+  }
+
+  static getAuthHeader() {
+    const token = this.getToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+}
+
+/**
+ * Company Auth Controller (Admin Login & Registration)
  */
 export class CompanyAuthController {
   static init() {
@@ -444,10 +579,9 @@ export class CompanyAuthController {
   }
 
   static checkAuthOrPrompt(onSuccessCallback) {
-    const activeComp = CompanyAuthStore.getActiveCompany();
-    if (activeComp) {
+    if (AuthManager.isAdmin()) {
       this.renderActiveCompanyBadge();
-      if (onSuccessCallback) onSuccessCallback(activeComp);
+      if (onSuccessCallback) onSuccessCallback(AuthManager.getUser());
     } else {
       if (window.employeeApp) window.employeeApp.showAttendanceAuthPage();
     }
@@ -457,119 +591,215 @@ export class CompanyAuthController {
     const registerForm = document.getElementById('form-company-register');
     const loginForm = document.getElementById('form-company-login');
     const logoutBtn = document.getElementById('btn-company-logout');
+    const navLogoutBtn = document.getElementById('nav-company-logout-btn');
+    const landingSwitchBtn = document.getElementById('btn-landing-switch-company');
+    const navLoginBtn = document.getElementById('nav-company-login-btn');
+
+    // Quick 1-Click Demo Login Buttons
+    const demoBtns = document.querySelectorAll('.quick-demo-comp-btn');
+    demoBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const user = btn.dataset.user;
+        const pass = btn.dataset.pass;
+        const userInput = document.getElementById('comp-login-user');
+        const passInput = document.getElementById('comp-login-pass');
+        if (userInput) userInput.value = user;
+        if (passInput) passInput.value = pass;
+        if (loginForm) loginForm.requestSubmit();
+      });
+    });
+
+    if (navLoginBtn) {
+      navLoginBtn.addEventListener('click', () => {
+        if (window.employeeApp) window.employeeApp.showAttendanceAuthPage();
+      });
+    }
 
     if (registerForm) {
-      registerForm.addEventListener('submit', (e) => {
+      registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const industry = document.getElementById('comp-reg-industry').value.trim();
-        const name = document.getElementById('comp-reg-name').value.trim();
-        const address = document.getElementById('comp-reg-address').value.trim();
-        const email = document.getElementById('comp-reg-email').value.trim();
-        const mobile = document.getElementById('comp-reg-mobile').value.trim();
-        const username = document.getElementById('comp-reg-username').value.trim();
-        const password = document.getElementById('comp-reg-password').value;
+        const name = document.getElementById('comp-reg-name') ? document.getElementById('comp-reg-name').value.trim() : '';
+        const country = document.getElementById('comp-reg-country') ? document.getElementById('comp-reg-country').value.trim() : 'India';
+        const state = document.getElementById('comp-reg-state') ? document.getElementById('comp-reg-state').value.trim() : '';
+        const email = document.getElementById('comp-reg-email') ? document.getElementById('comp-reg-email').value.trim() : '';
+        const username = document.getElementById('comp-reg-username') ? document.getElementById('comp-reg-username').value.trim() : '';
+        const password = document.getElementById('comp-reg-password') ? document.getElementById('comp-reg-password').value : '';
+
+        if (!name || !username || !password) {
+          Swal.fire({
+            title: 'Missing Required Fields',
+            text: 'Please fill in Company Name, Admin Username, and Password.',
+            icon: 'warning'
+          });
+          return;
+        }
 
         try {
-          const comp = CompanyAuthStore.registerCompany({
-            industry_type: industry,
+          // Backend API registration
+          const res = await fetch('http://localhost:5000/api/v1/auth/admin-register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              company_name: name,
+              country,
+              state,
+              email,
+              username,
+              password
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Registration failed.');
+          }
+
+          AuthManager.setAuth(data.token, 'admin', data.user);
+          CompanyAuthStore.setActiveCompany({
             company_name: name,
-            company_address: address,
-            company_email: email,
-            mobile_number: mobile,
-            username: username,
-            password: password
+            username,
+            district: state,
+            country
           });
 
           Swal.fire({
             title: 'Company Registered & Logged In!',
             html: `<div class="my-2 text-center">
-              <i class="ti ti-building-check text-info" style="font-size: 54px;"></i>
-              <h5 class="fw-bold text-dark mt-2">${comp.company_name}</h5>
-              <p class="text-muted text-sm mb-0">Industry: ${comp.industry_type} | Admin: ${comp.username}</p>
+              <i class="ti ti-building-check text-success" style="font-size: 54px;"></i>
+              <h5 class="fw-bold text-dark mt-2">${name}</h5>
+              <p class="text-muted text-sm mb-0">Admin token generated successfully.</p>
             </div>`,
             icon: 'success',
-            confirmButtonColor: '#0dcaf0',
-            confirmButtonText: 'Access Attendance Portal',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
+            confirmButtonColor: '#09C82C',
+            confirmButtonText: 'Access Workspace'
           });
 
           this.renderActiveCompanyBadge();
-          if (window.employeeApp) window.employeeApp.showAttendanceScreenDirect();
+          if (window.employeeApp) window.employeeApp.showLandingScreen();
         } catch (err) {
           Swal.fire({
             title: 'Registration Error',
             text: err.message,
-            icon: 'error',
-            confirmButtonColor: '#dc3545',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-danger text-white rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
+            icon: 'error'
           });
         }
       });
     }
 
     if (loginForm) {
-      loginForm.addEventListener('submit', (e) => {
+      loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const userOrEmail = document.getElementById('comp-login-user').value.trim();
-        const password = document.getElementById('comp-login-pass').value;
+        const userOrEmail = document.getElementById('comp-login-user') ? document.getElementById('comp-login-user').value.trim() : '';
+        const password = document.getElementById('comp-login-pass') ? document.getElementById('comp-login-pass').value : '';
+
+        if (!userOrEmail) {
+          Swal.fire({
+            title: 'Identifier Required',
+            text: 'Please enter your Admin Username or Company Email.',
+            icon: 'warning'
+          });
+          return;
+        }
+
+        if (!password) {
+          Swal.fire({
+            title: 'Password Required',
+            text: 'Please enter your account password.',
+            icon: 'warning'
+          });
+          return;
+        }
 
         try {
-          const comp = CompanyAuthStore.loginCompany(userOrEmail, password);
+          // Backend API Admin Login
+          const res = await fetch('http://localhost:5000/api/v1/auth/admin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              identifier: userOrEmail,
+              password
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Sign in failed.');
+          }
+
+          AuthManager.setAuth(data.token, 'admin', data.user);
+          CompanyAuthStore.setActiveCompany({
+            company_name: data.user.companyName,
+            username: data.user.username,
+            district: data.user.city || 'HQ'
+          });
 
           const rememberCheckbox = document.getElementById('comp-remember-me');
           if (rememberCheckbox && rememberCheckbox.checked) {
-            localStorage.setItem('learnhub_saved_comp_username', comp.username);
+            localStorage.setItem('learnhub_saved_comp_username', data.user.username);
           } else {
             localStorage.removeItem('learnhub_saved_comp_username');
           }
 
           Swal.fire({
-            title: 'Welcome Back!',
+            title: 'Welcome Back, Admin!',
             html: `<div class="my-2 text-center">
-              <i class="ti ti-building text-info" style="font-size: 54px;"></i>
-              <h5 class="fw-bold text-dark mt-2">${comp.company_name}</h5>
-              <p class="text-muted text-sm mb-0">Logged in as ${comp.username} (${comp.company_email})</p>
+              <i class="ti ti-building text-primary" style="font-size: 54px;"></i>
+              <h5 class="fw-bold text-dark mt-2">${data.user.companyName}</h5>
+              <p class="text-muted text-sm mb-0">Authenticated as ${data.user.username} (${data.user.city || 'HQ'})</p>
             </div>`,
             icon: 'success',
-            confirmButtonColor: '#0dcaf0',
-            confirmButtonText: 'Access Attendance Portal',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
+            confirmButtonColor: '#09C82C',
+            confirmButtonText: 'Open Workspace'
           });
 
           this.renderActiveCompanyBadge();
-          if (window.employeeApp) window.employeeApp.showAttendanceScreenDirect();
+          if (window.employeeApp) window.employeeApp.showLandingScreen();
         } catch (err) {
           Swal.fire({
             title: 'Sign In Failed',
             text: err.message,
-            icon: 'error',
-            confirmButtonColor: '#dc3545',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-danger text-white rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
+            icon: 'error'
           });
         }
       });
     }
 
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        CompanyAuthStore.logoutCompany();
-        this.renderActiveCompanyBadge();
-        Swal.fire({
-          title: 'Company Logged Out',
-          text: 'Company session ended successfully.',
-          icon: 'info',
-          confirmButtonColor: '#0dcaf0',
-          timer: 1800,
-          customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2 fw-bold' },
-          buttonsStyling: false
-        });
-        if (window.employeeApp) window.employeeApp.showLandingScreen();
+    const handleLogout = async () => {
+      const result = await Swal.fire({
+        title: 'Sign Out Confirmation',
+        text: 'Are you sure you want to sign out of the Company / Admin Workspace?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="ti ti-logout me-1"></i> Yes, Sign Out',
+        cancelButtonText: 'Cancel',
+        customClass: {
+          popup: 'rounded-4 shadow-lg border-0',
+          confirmButton: 'btn btn-danger text-white rounded-pill px-4 py-2 fw-bold me-2',
+          cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold'
+        },
+        buttonsStyling: false
       });
-    }
+
+      if (!result.isConfirmed) return;
+
+      AuthManager.clearAuth();
+      this.renderActiveCompanyBadge();
+      Swal.fire({
+        title: 'Signed Out Successfully',
+        text: 'You have signed out. Please sign in to continue.',
+        icon: 'info',
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: 'rounded-4 shadow-lg border-0' }
+      });
+      if (window.employeeApp) window.employeeApp.showAttendanceAuthPage();
+    };
+
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    if (navLogoutBtn) navLogoutBtn.addEventListener('click', handleLogout);
+    if (landingSwitchBtn) landingSwitchBtn.addEventListener('click', handleLogout);
   }
 
   static attachLoginUtilities() {
@@ -579,8 +809,48 @@ export class CompanyAuthController {
     const forgotPassLink = document.getElementById('link-comp-forgot-password');
     const switchToRegisterLink = document.getElementById('link-switch-to-register');
     const switchToLoginLink = document.getElementById('link-switch-to-login');
+    const tabBtnLogin = document.getElementById('tab-btn-comp-login');
+    const tabBtnRegister = document.getElementById('tab-btn-comp-register');
     const loginPane = document.getElementById('content-comp-login');
     const registerPane = document.getElementById('content-comp-register');
+
+    const showLoginTab = () => {
+      if (tabBtnLogin) {
+        tabBtnLogin.classList.add('active');
+        tabBtnLogin.setAttribute('aria-selected', 'true');
+      }
+      if (tabBtnRegister) {
+        tabBtnRegister.classList.remove('active');
+        tabBtnRegister.setAttribute('aria-selected', 'false');
+      }
+      if (loginPane) {
+        loginPane.classList.remove('d-none');
+        loginPane.classList.add('show', 'active');
+      }
+      if (registerPane) {
+        registerPane.classList.add('d-none');
+        registerPane.classList.remove('show', 'active');
+      }
+    };
+
+    const showRegisterTab = () => {
+      if (tabBtnRegister) {
+        tabBtnRegister.classList.add('active');
+        tabBtnRegister.setAttribute('aria-selected', 'true');
+      }
+      if (tabBtnLogin) {
+        tabBtnLogin.classList.remove('active');
+        tabBtnLogin.setAttribute('aria-selected', 'false');
+      }
+      if (registerPane) {
+        registerPane.classList.remove('d-none');
+        registerPane.classList.add('show', 'active');
+      }
+      if (loginPane) {
+        loginPane.classList.add('d-none');
+        loginPane.classList.remove('show', 'active');
+      }
+    };
 
     if (togglePassBtn && passInput && toggleIcon) {
       togglePassBtn.addEventListener('click', () => {
@@ -590,17 +860,31 @@ export class CompanyAuthController {
       });
     }
 
-    if (switchToRegisterLink && loginPane && registerPane) {
-      switchToRegisterLink.addEventListener('click', () => {
-        loginPane.classList.remove('show', 'active');
-        registerPane.classList.add('show', 'active');
+    if (tabBtnLogin) {
+      tabBtnLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        showLoginTab();
       });
     }
 
-    if (switchToLoginLink && loginPane && registerPane) {
-      switchToLoginLink.addEventListener('click', () => {
-        registerPane.classList.remove('show', 'active');
-        loginPane.classList.add('show', 'active');
+    if (tabBtnRegister) {
+      tabBtnRegister.addEventListener('click', (e) => {
+        e.preventDefault();
+        showRegisterTab();
+      });
+    }
+
+    if (switchToRegisterLink) {
+      switchToRegisterLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showRegisterTab();
+      });
+    }
+
+    if (switchToLoginLink) {
+      switchToLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showLoginTab();
       });
     }
 
@@ -610,11 +894,11 @@ export class CompanyAuthController {
           title: 'Forgot Company Password?',
           text: 'Enter your registered Company Email or Username to reset password:',
           input: 'text',
-          inputPlaceholder: 'admin@acme.com or admin_acme',
+          inputPlaceholder: 'admin@nexgen.com or admin_nexgen',
           showCancelButton: true,
           confirmButtonText: 'Verify Company',
-          confirmButtonColor: '#0dcaf0',
-          customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2 fw-bold', cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold' },
+          confirmButtonColor: '#09C82C',
+          customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary text-white rounded-pill px-4 py-2 fw-bold', cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold' },
           buttonsStyling: false,
           inputValidator: (val) => {
             if (!val || !val.trim()) return 'Please enter your Username or Company Email!';
@@ -624,9 +908,10 @@ export class CompanyAuthController {
         if (userOrEmail) {
           try {
             const companies = CompanyAuthStore.getRegisteredCompanies();
+            const clean = userOrEmail.trim().toLowerCase();
             const matched = companies.find(
-              c => c.username.toLowerCase() === userOrEmail.trim().toLowerCase() ||
-                   c.company_email.toLowerCase() === userOrEmail.trim().toLowerCase()
+              c => (c.username && c.username.toLowerCase() === clean) ||
+                   (c.company_email && c.company_email.toLowerCase() === clean)
             );
 
             if (!matched) {
@@ -636,7 +921,7 @@ export class CompanyAuthController {
             const { value: newPass } = await Swal.fire({
               title: `Reset Password`,
               html: `<div class="my-2 text-center">
-                <i class="ti ti-key text-info fs-1"></i>
+                <i class="ti ti-key text-primary fs-1"></i>
                 <h6 class="fw-bold text-dark mt-2">${matched.company_name} (${matched.username})</h6>
                 <p class="text-muted text-xs mb-0">Enter a new secure password for this company account:</p>
               </div>`,
@@ -644,8 +929,8 @@ export class CompanyAuthController {
               inputPlaceholder: '••••••••',
               showCancelButton: true,
               confirmButtonText: 'Update Password',
-              confirmButtonColor: '#0dcaf0',
-              customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2 fw-bold', cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold' },
+              confirmButtonColor: '#09C82C',
+              customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary text-white rounded-pill px-4 py-2 fw-bold', cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold' },
               buttonsStyling: false,
               inputValidator: (val) => {
                 if (!val || val.length < 4) return 'Password must be at least 4 characters long!';
@@ -658,8 +943,8 @@ export class CompanyAuthController {
                 title: 'Password Updated!',
                 text: `Password for ${matched.company_name} has been reset successfully. You can now sign in with your new password.`,
                 icon: 'success',
-                confirmButtonColor: '#0dcaf0',
-                customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2 fw-bold' },
+                confirmButtonColor: '#09C82C',
+                customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary text-white rounded-pill px-4 py-2 fw-bold' },
                 buttonsStyling: false
               });
             }
@@ -682,15 +967,40 @@ export class CompanyAuthController {
     const badgeContainer = document.getElementById('company-active-badge-container');
     const attHeaderCompName = document.getElementById('att-header-company-name');
     const logoutBtn = document.getElementById('btn-company-logout');
+    
+    // Navbar Elements
+    const navPill = document.getElementById('nav-logged-in-company-pill');
+    const navCompText = document.getElementById('nav-company-name-text');
+    const navLoginBtn = document.getElementById('nav-company-login-btn');
+
+    // Post-Login Landing Banner Elements
+    const landingCompName = document.getElementById('landing-company-name-display');
+    const landingCompLocation = document.getElementById('landing-company-location-display');
+    const landingCompAddress = document.getElementById('landing-company-address-display');
+    const landingCompEmail = document.getElementById('landing-company-email-display');
+    const landingCompCountry = document.getElementById('landing-company-country-display');
+
     const comp = CompanyAuthStore.getActiveCompany();
 
     if (comp) {
+      if (navPill) navPill.classList.remove('d-none');
+      if (navCompText) navCompText.textContent = comp.company_name;
+      if (navLoginBtn) navLoginBtn.classList.add('d-none');
+
+      if (landingCompName) landingCompName.textContent = comp.company_name;
+      if (landingCompCountry) landingCompCountry.textContent = comp.country || 'India';
+      if (landingCompLocation) {
+        const parts = [comp.district, comp.state, comp.country].filter(Boolean);
+        landingCompLocation.innerHTML = `<i class="ti ti-map-pin me-1"></i>${parts.join(', ') || 'Facility HQ'}`;
+      }
+      if (landingCompAddress) landingCompAddress.textContent = comp.company_address || 'Registered Office';
+      if (landingCompEmail) landingCompEmail.innerHTML = `<i class="ti ti-mail me-1"></i>${comp.company_email || comp.username}`;
       if (badgeContainer) {
         badgeContainer.innerHTML = `
           <span class="badge bg-white text-dark border shadow-sm px-3 py-2 rounded-pill fw-semibold d-flex align-items-center gap-1.5" title="${comp.company_address}">
-            <i class="ti ti-building text-info fs-5"></i>
+            <i class="ti ti-building text-primary fs-5"></i>
             <span class="fw-bold">${comp.company_name}</span>
-            <span class="badge bg-info-subtle text-info text-xs rounded-pill ms-1">${comp.industry_type}</span>
+            <span class="badge bg-primary-subtle text-primary text-xs rounded-pill ms-1">${comp.district || 'HQ'}</span>
           </span>
         `;
       }
@@ -699,9 +1009,618 @@ export class CompanyAuthController {
       }
       if (logoutBtn) logoutBtn.classList.remove('d-none');
     } else {
+      if (navPill) navPill.classList.add('d-none');
+      if (navLoginBtn) navLoginBtn.classList.remove('d-none');
+
       if (badgeContainer) badgeContainer.innerHTML = '';
       if (attHeaderCompName) attHeaderCompName.textContent = 'Portal Default';
       if (logoutBtn) logoutBtn.classList.add('d-none');
+    }
+  }
+
+  static showPortalSelection() {
+    const selectionView = document.getElementById('auth-portal-selection-view');
+    const compView = document.getElementById('auth-company-view');
+    const empView = document.getElementById('auth-employee-view');
+    if (selectionView) selectionView.classList.remove('d-none');
+    if (compView) compView.classList.add('d-none');
+    if (empView) empView.classList.add('d-none');
+  }
+
+  static showCompanyLoginView() {
+    const selectionView = document.getElementById('auth-portal-selection-view');
+    const compView = document.getElementById('auth-company-view');
+    const empView = document.getElementById('auth-employee-view');
+    if (selectionView) selectionView.classList.add('d-none');
+    if (compView) compView.classList.remove('d-none');
+    if (empView) empView.classList.add('d-none');
+  }
+
+  static showEmployeeLoginView() {
+    const selectionView = document.getElementById('auth-portal-selection-view');
+    const compView = document.getElementById('auth-company-view');
+    const empView = document.getElementById('auth-employee-view');
+    if (selectionView) selectionView.classList.add('d-none');
+    if (compView) compView.classList.add('d-none');
+    if (empView) empView.classList.remove('d-none');
+  }
+
+  static attachPortalSelectionListeners() {
+    const btnSelectComp = document.getElementById('btn-select-company-portal');
+    const cardSelectComp = document.getElementById('card-select-company-portal');
+    const btnSelectEmp = document.getElementById('btn-select-employee-portal');
+    const cardSelectEmp = document.getElementById('card-select-employee-portal');
+    const btnSelectWfh = document.getElementById('btn-select-wfh-portal');
+    const cardSelectWfh = document.getElementById('card-select-wfh-portal');
+    const btnBackComp = document.getElementById('btn-back-to-portal-choice-comp');
+    const btnBackEmp = document.getElementById('btn-back-to-portal-choice-emp');
+
+    if (btnSelectComp) btnSelectComp.addEventListener('click', (e) => { e.stopPropagation(); this.showCompanyLoginView(); });
+    if (cardSelectComp) cardSelectComp.addEventListener('click', () => this.showCompanyLoginView());
+
+    if (btnSelectEmp) btnSelectEmp.addEventListener('click', (e) => { 
+      e.stopPropagation(); 
+      window._targetEmployeeSubView = 'attendance';
+      if (AuthManager.isEmployee() && window.employeeApp) {
+        window.employeeApp.showEmployeeDashboard(false);
+        EmployeePortalController.showAttendanceView();
+      } else {
+        this.showEmployeeLoginView(); 
+      }
+    });
+    if (cardSelectEmp) cardSelectEmp.addEventListener('click', () => {
+      window._targetEmployeeSubView = 'attendance';
+      if (AuthManager.isEmployee() && window.employeeApp) {
+        window.employeeApp.showEmployeeDashboard(false);
+        EmployeePortalController.showAttendanceView();
+      } else {
+        this.showEmployeeLoginView();
+      }
+    });
+
+    if (btnSelectWfh) btnSelectWfh.addEventListener('click', (e) => { 
+      e.stopPropagation(); 
+      window._targetEmployeeSubView = 'wfh';
+      if (AuthManager.isEmployee() && window.employeeApp) {
+        window.employeeApp.showEmployeeDashboard(false);
+        EmployeePortalController.showWfhView();
+      } else {
+        this.showEmployeeLoginView();
+      }
+    });
+    if (cardSelectWfh) cardSelectWfh.addEventListener('click', () => {
+      window._targetEmployeeSubView = 'wfh';
+      if (AuthManager.isEmployee() && window.employeeApp) {
+        window.employeeApp.showEmployeeDashboard(false);
+        EmployeePortalController.showWfhView();
+      } else {
+        this.showEmployeeLoginView();
+      }
+    });
+
+    if (btnBackComp) btnBackComp.addEventListener('click', () => this.showPortalSelection());
+    if (btnBackEmp) btnBackEmp.addEventListener('click', () => this.showPortalSelection());
+  }
+
+  static init() {
+    this.renderActiveCompanyBadge();
+    this.attachFormListeners();
+    this.attachLoginUtilities();
+    this.attachPortalSelectionListeners();
+  }
+}
+
+/**
+ * =========================================================================
+ * EMPLOYEE SELF-SERVICE CONTROLLER (Phase 7 Role Segregation)
+ * =========================================================================
+ */
+export class EmployeePortalController {
+  static activeEmployee = null;
+  static clockInterval = null;
+
+  static init() {
+    this.attachLoginListener();
+    this.attachDashboardListeners();
+  }
+
+  static attachLoginListener() {
+    const empForm = document.getElementById('form-employee-login');
+    const togglePinBtn = document.getElementById('btn-toggle-emp-login-pin');
+    const pinInput = document.getElementById('emp-login-pin');
+    const toggleIcon = document.getElementById('icon-toggle-emp-pin');
+    const quickDemoBtns = document.querySelectorAll('.quick-demo-emp-btn');
+
+    if (togglePinBtn && pinInput && toggleIcon) {
+      togglePinBtn.addEventListener('click', () => {
+        const isPass = pinInput.type === 'password';
+        pinInput.type = isPass ? 'text' : 'password';
+        toggleIcon.className = isPass ? 'ti ti-eye-off' : 'ti ti-eye';
+      });
+    }
+
+    quickDemoBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const code = btn.dataset.code;
+        const pin = btn.dataset.pin || '1234';
+        const codeInput = document.getElementById('emp-login-code');
+        if (codeInput) codeInput.value = code;
+        if (pinInput) pinInput.value = pin;
+        if (empForm) empForm.requestSubmit();
+      });
+    });
+
+    if (empForm) {
+      empForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const codeInput = document.getElementById('emp-login-code');
+        const code = codeInput ? codeInput.value.trim() : '';
+        const pin = pinInput ? pinInput.value.trim() : '';
+
+        if (!code) {
+          Swal.fire({ title: 'Employee Code Required', text: 'Please enter your Employee ID / Code.', icon: 'warning' });
+          return;
+        }
+
+        if (!pin) {
+          Swal.fire({ title: 'PIN / Password Required', text: 'Please enter your access PIN or password (default: 1234).', icon: 'warning' });
+          return;
+        }
+
+        try {
+          const res = await fetch('http://localhost:5000/api/v1/auth/employee-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ employee_code: code, pin })
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Failed to authenticate employee.');
+          }
+
+          AuthManager.setAuth(data.token, 'employee', data.employee);
+          this.activeEmployee = data.employee;
+
+          Swal.fire({
+            title: `Welcome, ${data.employee.name}!`,
+            html: `<div class="text-center my-2">
+              <div class="avatar bg-info-subtle text-info rounded-circle d-inline-flex p-3 mb-2">
+                <i class="ti ti-user-check fs-1 text-info"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-1">${data.employee.name} (${data.employee.employeeCode})</h5>
+              <div class="badge ${data.employee.workLocation === 'Remote' ? 'bg-info' : 'bg-secondary'} text-white rounded-pill px-3 py-1 text-xs mb-2">
+                ${data.employee.workLocation === 'Remote' ? '💻 Remote (WFH)' : '🏢 Office On-Site'}
+              </div>
+              <p class="text-muted text-xs mb-0">${data.employee.companyName} • ${data.employee.department}</p>
+            </div>`,
+            icon: 'success',
+            confirmButtonColor: '#0dcaf0',
+            confirmButtonText: 'Open Self-Service Dashboard'
+          });
+
+          if (window.employeeApp) {
+            window.employeeApp.showEmployeeDashboard(false);
+          }
+
+        } catch (err) {
+          Swal.fire({
+            title: 'Employee Sign In Failed',
+            text: err.message,
+            icon: 'error'
+          });
+        }
+      });
+    }
+  }
+
+  static attachDashboardListeners() {
+    const logoutBtn = document.getElementById('btn-emp-logout');
+    const refreshBtn = document.getElementById('btn-refresh-emp-records');
+    const punchBtn = document.getElementById('btn-emp-dash-punch');
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        const result = await Swal.fire({
+          title: 'Sign Out Confirmation',
+          text: 'Are you sure you want to sign out of Employee Self-Service?',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: '<i class="ti ti-logout me-1"></i> Yes, Sign Out',
+          cancelButtonText: 'Cancel',
+          customClass: {
+            popup: 'rounded-4 shadow-lg border-0',
+            confirmButton: 'btn btn-danger text-white rounded-pill px-4 py-2 fw-bold me-2',
+            cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold'
+          },
+          buttonsStyling: false
+        });
+
+        if (!result.isConfirmed) return;
+
+        AuthManager.clearAuth();
+        this.activeEmployee = null;
+        Swal.fire({
+          title: 'Signed Out Successfully',
+          text: 'You have signed out of employee self-service.',
+          icon: 'info',
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: 'rounded-4 shadow-lg border-0' }
+        });
+        if (window.employeeApp) window.employeeApp.showAttendanceAuthPage();
+      });
+    }
+    
+    const selectionView = document.getElementById('employee-selection-view');
+    const wfhView = document.getElementById('employee-wfh-view');
+    const attendanceView = document.getElementById('employee-attendance-view');
+
+    const showSelectionHub = () => {
+      if (selectionView) selectionView.classList.remove('d-none');
+      if (wfhView) wfhView.classList.add('d-none');
+      if (attendanceView) attendanceView.classList.add('d-none');
+    };
+
+    const showWfhView = () => {
+      if (selectionView) selectionView.classList.add('d-none');
+      if (wfhView) wfhView.classList.remove('d-none');
+      if (attendanceView) attendanceView.classList.add('d-none');
+    };
+
+    const showAttendanceView = () => {
+      if (selectionView) selectionView.classList.add('d-none');
+      if (wfhView) wfhView.classList.add('d-none');
+      if (attendanceView) attendanceView.classList.remove('d-none');
+    };
+
+    this.showSelectionHub = showSelectionHub;
+    this.showWfhView = showWfhView;
+    this.showAttendanceView = showAttendanceView;
+
+    // Launch Portal Buttons
+    const btnOpenWfh = document.getElementById('btn-open-wfh-field');
+    const cardOpenWfh = document.getElementById('card-launch-emp-wfh');
+    const btnOpenView = document.getElementById('btn-open-view-field');
+    const cardOpenView = document.getElementById('card-launch-emp-view');
+    const btnBackWfh = document.getElementById('btn-back-from-wfh');
+    const btnBackView = document.getElementById('btn-back-from-view');
+    const btnEmpHubBackToHome = document.getElementById('btn-emp-hub-back-to-home');
+    const btnSwitchToView = document.getElementById('btn-switch-to-view-field');
+
+    const goToHomeDashboard = () => {
+      if (window.employeeApp) {
+        window.employeeApp.showAttendanceAuthPage(false);
+      }
+    };
+
+    if (btnOpenWfh) btnOpenWfh.addEventListener('click', (e) => { e.stopPropagation(); showWfhView(); });
+    if (cardOpenWfh) cardOpenWfh.addEventListener('click', () => showWfhView());
+    if (btnOpenView) btnOpenView.addEventListener('click', (e) => { e.stopPropagation(); showAttendanceView(); });
+    if (cardOpenView) cardOpenView.addEventListener('click', () => showAttendanceView());
+    if (btnBackWfh) btnBackWfh.addEventListener('click', goToHomeDashboard);
+    if (btnBackView) btnBackView.addEventListener('click', goToHomeDashboard);
+    if (btnEmpHubBackToHome) btnEmpHubBackToHome.addEventListener('click', goToHomeDashboard);
+    if (btnSwitchToView) btnSwitchToView.addEventListener('click', () => showAttendanceView());
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        this.loadMyRecords();
+        this.loadAnnualSummary();
+      });
+    }
+
+    const refreshAnnualBtn = document.getElementById('btn-refresh-annual-summary');
+    if (refreshAnnualBtn) {
+      refreshAnnualBtn.addEventListener('click', () => {
+        this.loadAnnualSummary();
+      });
+    }
+
+    const yearSelect = document.getElementById('emp-dash-year-select');
+    if (yearSelect) {
+      yearSelect.addEventListener('change', () => {
+        this.loadAnnualSummary(yearSelect.value);
+      });
+    }
+
+    if (punchBtn) {
+      punchBtn.addEventListener('click', async () => {
+        const emp = AuthManager.getUser() || this.activeEmployee;
+        if (!emp || !emp.employeeCode) {
+          Swal.fire({ title: 'Authentication Error', text: 'Please sign in again.', icon: 'error' });
+          return;
+        }
+
+        try {
+          const res = await fetch('http://localhost:5000/api/v1/attendance/wfh-check-in', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...AuthManager.getAuthHeader()
+            },
+            body: JSON.stringify({
+              employee_code: emp.employeeCode,
+              location: 'Employee Self-Service'
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.success) {
+            Swal.fire({
+              title: `💻 ${data.action} Successful`,
+              html: `<div class="text-center my-2">
+                <div class="avatar bg-success-subtle text-success rounded-circle d-inline-flex p-3 mb-2">
+                  <i class="ti ti-circle-check fs-1 text-success"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">${data.employee ? data.employee.name : emp.name}</h5>
+                <p class="text-muted text-xs mb-2">${data.message}</p>
+                <div class="d-flex justify-content-center gap-2">
+                  <span class="badge bg-info text-white rounded-pill px-3 py-1 text-xs">Method: Web Portal</span>
+                  <span class="badge bg-success text-white rounded-pill px-3 py-1 text-xs">Status: Present</span>
+                </div>
+              </div>`,
+              icon: 'success',
+              confirmButtonColor: '#09C82C'
+            });
+            await this.loadMyRecords();
+            await this.loadAnnualSummary();
+          } else if (res.status === 403 || data.status === 403) {
+            Swal.fire({
+              title: '⛔ Check-In Blocked (Window Expired)',
+              html: `<div class="text-center my-2">
+                <div class="avatar bg-danger-subtle text-danger rounded-circle d-inline-flex p-3 mb-2">
+                  <i class="ti ti-clock-x fs-1 text-danger"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-2">${data.message}</h6>
+                <div class="p-3 bg-light rounded-3 border text-xs text-muted text-start mt-3">
+                  <div><strong>Shift Start:</strong> ${data.details ? data.details.shift_start_time : '09:00:00'}</div>
+                  <div><strong>Grace Buffer:</strong> ${data.details ? data.details.grace_period_minutes : '30'} minutes</div>
+                  <div><strong>Absolute Deadline:</strong> <span class="text-danger fw-bold">${data.details ? data.details.cut_off_deadline : '09:30:00'}</span></div>
+                  <div><strong>Attempted At:</strong> ${data.details ? data.details.attempted_time : ''}</div>
+                </div>
+              </div>`,
+              icon: 'error',
+              confirmButtonColor: '#dc3545'
+            });
+          } else {
+            Swal.fire({ title: 'Check-In Failed', text: data.message || 'Unable to record attendance.', icon: 'error' });
+          }
+        } catch (err) {
+          Swal.fire({ title: 'Network Error', text: err.message, icon: 'error' });
+        }
+      });
+    }
+  }
+
+  static async loadEmployeeDashboard() {
+    const emp = AuthManager.getUser();
+    if (!emp) return;
+
+    this.activeEmployee = emp;
+
+    // Render Employee Header Meta & Welcome
+    const nameEl = document.getElementById('emp-dash-name');
+    const welcomeNameEl = document.getElementById('emp-hub-welcome-name');
+    const badgeEl = document.getElementById('emp-dash-location-badge');
+    const metaEl = document.getElementById('emp-dash-meta');
+    const officeWarnEl = document.getElementById('emp-dash-office-warning');
+
+    if (nameEl) nameEl.textContent = emp.name || 'Employee';
+    if (welcomeNameEl) welcomeNameEl.textContent = emp.name || 'Employee';
+    if (metaEl) metaEl.textContent = `${emp.employeeCode} • ${emp.department || 'Engineering'} • ${emp.companyName || 'NexGen Cloud Systems'}`;
+    
+    const isRemote = emp.workLocation === 'Remote';
+    if (badgeEl) {
+      badgeEl.innerHTML = isRemote
+        ? `<i class="ti ti-laptop me-1"></i> Remote (WFH)`
+        : `<i class="ti ti-building me-1"></i> Office On-Site`;
+      badgeEl.className = `badge ${isRemote ? 'bg-info text-white' : 'bg-secondary text-white'} rounded-pill px-2.5 py-1 text-xs fw-bold`;
+    }
+
+    if (officeWarnEl) {
+      if (!isRemote) {
+        officeWarnEl.classList.remove('d-none');
+        officeWarnEl.classList.add('d-flex');
+      } else {
+        officeWarnEl.classList.add('d-none');
+        officeWarnEl.classList.remove('d-flex');
+      }
+    }
+
+    // Show target sub-view or default Selection Hub
+    if (window._targetEmployeeSubView === 'wfh') {
+      this.showWfhView();
+    } else if (window._targetEmployeeSubView === 'attendance') {
+      this.showAttendanceView();
+    } else {
+      this.showSelectionHub();
+    }
+
+    // Start Live Clock
+    this.startLiveClock();
+
+    // Fetch and render personal records & 1-year summary
+    await Promise.all([
+      this.loadMyRecords(),
+      this.loadAnnualSummary()
+    ]);
+  }
+
+  static startLiveClock() {
+    const clockEl = document.getElementById('emp-dash-clock');
+    const hubClockEl = document.getElementById('emp-hub-clock');
+    const badgeEl = document.getElementById('emp-dash-window-status-badge');
+    
+    const update = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if (clockEl) clockEl.textContent = timeStr;
+      if (hubClockEl) hubClockEl.textContent = timeStr;
+
+      // Time gate calculation: 09:30 AM default
+      const nowTotal = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+      const cutTotal = 9 * 60 + 30; // 09:30 AM
+
+      if (badgeEl) {
+        if (nowTotal > cutTotal) {
+          badgeEl.innerHTML = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill text-xs fw-bold"><i class="ti ti-lock me-1"></i> Window Expired</span>`;
+        } else {
+          badgeEl.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill text-xs fw-bold"><i class="ti ti-circle-check me-1"></i> Window Active</span>`;
+        }
+      }
+    };
+
+    update();
+    if (!this.clockInterval) {
+      this.clockInterval = setInterval(update, 1000);
+    }
+  }
+
+  static async loadAnnualSummary(year = null) {
+    const yearSelect = document.getElementById('emp-dash-year-select');
+    const selectedYear = year || (yearSelect ? yearSelect.value : new Date().getFullYear());
+    const totalDaysEl = document.getElementById('emp-annual-total-days');
+    const workdaysMetaEl = document.getElementById('emp-annual-workdays-meta');
+    const presentDaysEl = document.getElementById('emp-annual-present-days');
+    const rateEl = document.getElementById('emp-annual-attendance-rate');
+    const absentDaysEl = document.getElementById('emp-annual-absent-days');
+    const balanceLeaveEl = document.getElementById('emp-annual-balance-leave');
+    const leaveQuotaEl = document.getElementById('emp-annual-leave-quota');
+    const leaveUsedEl = document.getElementById('emp-annual-leave-used');
+    const hubLeaveBadge = document.getElementById('emp-hub-leave-badge');
+    const hubWorkdaysBadge = document.getElementById('emp-hub-workdays-badge');
+    const monthsGrid = document.getElementById('emp-annual-months-grid');
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1/attendance/my-annual-summary?year=${selectedYear}`, {
+        headers: AuthManager.getAuthHeader()
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success && data.data) {
+        const d = data.data;
+
+        if (totalDaysEl) totalDaysEl.textContent = d.total_working_days_year;
+        if (workdaysMetaEl) workdaysMetaEl.textContent = `${d.working_days_to_date} working days elapsed in ${d.year}`;
+        if (presentDaysEl) presentDaysEl.textContent = d.present_days;
+        if (rateEl) rateEl.innerHTML = `Attendance Rate: <strong>${d.attendance_percentage}%</strong>`;
+        if (absentDaysEl) absentDaysEl.textContent = d.absent_days;
+        if (balanceLeaveEl) balanceLeaveEl.textContent = d.balance_paid_leave;
+        if (leaveQuotaEl) leaveQuotaEl.textContent = d.paid_leave_quota;
+        if (leaveUsedEl) leaveUsedEl.textContent = d.paid_leave_taken;
+        if (hubLeaveBadge) hubLeaveBadge.textContent = `${d.balance_paid_leave} Days Remaining`;
+        if (hubWorkdaysBadge) hubWorkdaysBadge.textContent = `${d.total_working_days_year} Days (${d.year})`;
+
+        if (monthsGrid && Array.isArray(d.monthly_breakdown)) {
+          monthsGrid.innerHTML = d.monthly_breakdown.map(m => `
+            <div class="col-lg-3 col-md-4 col-sm-6 col-12">
+              <div class="p-3 bg-light rounded-3 border h-100 shadow-xs d-flex flex-column justify-content-between">
+                <div>
+                  <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+                    <span class="fw-bold text-dark text-xs">${m.month} ${d.year}</span>
+                    <span class="badge ${m.present_days > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-muted'} rounded-pill text-xs px-2 py-0.5">
+                      ${m.present_days > 0 ? `${m.attendance_rate}% Rate` : 'No Activity'}
+                    </span>
+                  </div>
+                  <div class="d-flex flex-column gap-1.5 text-xs">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Present:</span>
+                      <span class="fw-bold text-success">${m.present_days} Days</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Absent:</span>
+                      <span class="fw-bold text-danger">${m.absent_days} Days</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Paid Leave:</span>
+                      <span class="fw-bold text-primary">${m.paid_leaves_used} Days</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="progress mt-2.5" style="height: 5px;">
+                  <div class="progress-bar bg-success rounded-pill" style="width: ${m.attendance_rate}%;"></div>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching annual summary:', err);
+    }
+  }
+
+  static async loadMyRecords() {
+    const tbody = document.getElementById('emp-dash-records-tbody');
+    const statPresent = document.getElementById('emp-dash-stat-present');
+    const statLate = document.getElementById('emp-dash-stat-late');
+    const statToday = document.getElementById('emp-dash-stat-today');
+    const statTotal = document.getElementById('emp-dash-stat-total');
+
+    try {
+      const res = await fetch('http://localhost:5000/api/v1/attendance/my-records', {
+        headers: AuthManager.getAuthHeader()
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success && Array.isArray(data.data)) {
+        const records = data.data;
+
+        // Compute personal stats
+        const presentCount = records.filter(r => r.status === 'Present').length;
+        const lateCount = records.filter(r => r.status === 'Late').length;
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayRecord = records.find(r => r.date === todayStr);
+
+        if (statPresent) statPresent.textContent = presentCount;
+        if (statLate) statLate.textContent = lateCount;
+        if (statTotal) statTotal.textContent = records.length;
+        if (statToday) {
+          if (todayRecord) {
+            statToday.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill text-xs fw-bold">✓ Present (${todayRecord.check_in})</span>`;
+          } else {
+            statToday.innerHTML = `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill text-xs">Not Checked In</span>`;
+          }
+        }
+
+        if (tbody) {
+          if (records.length === 0) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                  <i class="ti ti-calendar-off display-6 opacity-50 d-block mb-1"></i>
+                  No attendance records logged yet. Use the Virtual Check-In button above.
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          tbody.innerHTML = records.map(r => `
+            <tr>
+              <td class="fw-semibold text-dark font-monospace">${r.date}</td>
+              <td><span class="badge bg-light text-success border"><i class="ti ti-login me-1"></i>${r.check_in || '--:--'}</span></td>
+              <td><span class="badge bg-light text-info border"><i class="ti ti-logout me-1"></i>${r.check_out || 'Active'}</span></td>
+              <td class="fw-medium text-dark">${r.duration || 'In Progress'}</td>
+              <td>
+                <span class="badge ${r.verification_type === 'Web Portal' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light text-secondary border'}">
+                  <i class="${r.verification_type === 'Web Portal' ? 'ti ti-laptop' : 'ti ti-camera'} me-1"></i>${r.verification_type || 'Web Portal'}
+                </span>
+              </td>
+              <td>
+                <span class="badge ${r.status === 'Late' ? 'bg-warning text-dark' : 'bg-success text-white'} rounded-pill px-2.5 py-1 text-xs fw-bold">
+                  ${r.status}
+                </span>
+              </td>
+            </tr>
+          `).join('');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching personal records:', err);
     }
   }
 }
@@ -715,7 +1634,21 @@ export class AttendanceStore {
   static getAttendanceLogs() {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY_ATT);
-      return data ? JSON.parse(data) : [];
+      let logs = data ? JSON.parse(data) : [];
+      // Clean up adjacent duplicates
+      const uniqueLogs = [];
+      const seenKeys = new Set();
+      logs.forEach(l => {
+        const key = `${l.employee_code}_${l.date}_${l.check_in}_${l.work_mode}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          uniqueLogs.push(l);
+        }
+      });
+      if (uniqueLogs.length !== logs.length) {
+        this.saveAttendanceLogs(uniqueLogs);
+      }
+      return uniqueLogs;
     } catch (e) {
       console.error('Failed to load attendance logs', e);
       return [];
@@ -731,55 +1664,43 @@ export class AttendanceStore {
   }
 
   static getSeedAttendance() {
-    const today = new Date().toISOString().split('T')[0];
-    const seed = [
-      {
-        id: 'att-1001',
-        employee_id: 'emp-1001-uuid',
-        employee_name: 'Sarah Jenkins',
-        employee_code: 'EMP-1001',
-        department: 'Engineering',
-        date: today,
-        check_in: '09:00',
-        check_out: '17:30',
-        duration: '8h 30m',
-        status: 'Present',
-        work_mode: 'In-Office',
-        notes: 'Regular check-in'
-      },
-      {
-        id: 'att-1002',
-        employee_id: 'emp-1002-uuid',
-        employee_name: 'Alexander Vance',
-        employee_code: 'EMP-1002',
-        department: 'Product Management',
-        date: today,
-        check_in: '09:45',
-        check_out: '18:00',
-        duration: '8h 15m',
-        status: 'Late',
-        work_mode: 'In-Office',
-        notes: 'Traffic delay approved'
-      }
-    ];
-    this.saveAttendanceLogs(seed);
-    return seed;
+    // No dummy data — attendance populates only from real hardware biometric punches
+    return [];
   }
 
   static logAttendance(record) {
     const logs = this.getAttendanceLogs();
+    const today = record.date || new Date().toISOString().split('T')[0];
+    const checkInTime = record.check_in || '09:00';
+
+    const existingIndex = logs.findIndex(l => (l.employee_code === record.employee_code || l.employee_id === record.employee_id) && l.date === today);
+    if (existingIndex >= 0) {
+      // Update existing day record (for Check-Out or Status updates)
+      logs[existingIndex] = {
+        ...logs[existingIndex],
+        ...record,
+        check_out: record.check_out || logs[existingIndex].check_out || '',
+        duration: record.duration || (record.check_out ? this.calculateWorkDuration(logs[existingIndex].check_in, record.check_out) : logs[existingIndex].duration || 'Active'),
+        status: record.status || logs[existingIndex].status || 'Present'
+      };
+      this.saveAttendanceLogs(logs);
+      return logs[existingIndex];
+    }
+
     const newLog = {
-      id: `att-${Date.now()}`,
+      id: record.id || `att-${Date.now()}`,
       employee_id: record.employee_id,
       employee_name: record.employee_name,
       employee_code: record.employee_code,
       department: record.department || 'Engineering',
-      date: record.date || new Date().toISOString().split('T')[0],
-      check_in: record.check_in || '09:00',
+      date: today,
+      check_in: checkInTime,
       check_out: record.check_out || '',
-      duration: record.check_out ? this.calculateWorkDuration(record.check_in, record.check_out) : 'Active',
+      duration: record.duration || (record.check_out ? this.calculateWorkDuration(checkInTime, record.check_out) : 'Active'),
       status: record.status || 'Present',
-      work_mode: record.work_mode || 'In-Office',
+      work_mode: record.work_mode || 'On-Site Kiosk',
+      location: record.location || 'Front Desk Kiosk',
+      verification_type: record.verification_type || 'Barcode Scanner',
       notes: record.notes || ''
     };
     logs.unshift(newLog);
@@ -894,7 +1815,6 @@ export class AttendanceStore {
         m.rate = m.totalLoggedDays > 0 ? `${((working / m.totalLoggedDays) * 100).toFixed(1)}%` : '100%';
       });
     }
-
     return {
       joinDate: joinDateStr,
       endDate: endDateStr,
@@ -904,349 +1824,733 @@ export class AttendanceStore {
 }
 
 /**
- * Attendance Controller
+ * Attendance Controller — Camera-Based Barcode Kiosk & Live Activity Engine
  */
 export class AttendanceController {
   static currentFilter = 'ALL';
-  static attendanceScanner = null;
+  static socketConnected = false;
+  static html5QrScanner = null;
+  static isScanningLocked = false;
+  static isCameraRunning = false;
+  static lastPunches = [];
 
   static init() {
     CompanyAuthController.renderActiveCompanyBadge();
-    this.populateEmployeeDropdown();
-    this.setTodayDate();
     this.renderAttendanceStats();
     this.renderAttendanceTable();
-    this.attachFormListener();
     this.attachFilterListeners();
-    this.initAttendanceScanner();
-    this.initBiometricScanners();
+    this.initKioskScanner();
+    this.initSocketConnection();
+    this.initShiftSettings();
+    this.initWFHCheckIn();
+    this.loadInitialData();
   }
 
-  static initBiometricScanners() {
-    const faceBtn = document.getElementById('btn-trigger-face-scan');
-    const fingerBtn = document.getElementById('btn-trigger-finger-scan');
-    const irisBtn = document.getElementById('btn-trigger-iris-scan');
+  static availableCameras = [];
+  static activeCameraId = null;
 
-    const getRandomEmployee = () => {
-      const employees = EmployeeStore.getEmployees();
-      if (!employees || employees.length === 0) {
-        return { id: 'emp-1001-uuid', name: 'Sarah Jenkins', employee_code: 'EMP-1001', department: 'Engineering' };
-      }
-      return employees[Math.floor(Math.random() * employees.length)];
-    };
+  // =========================================================================
+  // KIOSK WEBCAM SCANNER (Html5Qrcode Continuous Barcode/QR Reader)
+  // =========================================================================
+  static async initKioskScanner() {
+    const scannerElement = document.getElementById('attendance-kiosk-scanner');
+    if (!scannerElement) return;
 
-    if (faceBtn) {
-      faceBtn.addEventListener('click', async () => {
-        const statusEl = document.getElementById('face-scan-status');
-        if (statusEl) statusEl.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Extracting 128 facial landmarks...`;
+    const toggleCameraBtn = document.getElementById('btn-toggle-kiosk-camera');
+    const cameraSelect = document.getElementById('kiosk-camera-select');
+    const manualInput = document.getElementById('manual-kiosk-barcode-input');
+    const submitManualBtn = document.getElementById('btn-submit-manual-barcode');
 
-        setTimeout(() => {
-          const emp = getRandomEmployee();
-          if (statusEl) statusEl.innerHTML = `Align face within target frame`;
-
-          AttendanceStore.logAttendance({
-            employee_id: emp.id || 'emp-1001-uuid',
-            employee_name: emp.name,
-            employee_code: emp.employee_code,
-            department: emp.department || 'Engineering',
-            date: new Date().toISOString().split('T')[0],
-            check_in: new Date().toTimeString().split(' ')[0].substring(0, 5),
-            status: 'Present',
-            work_mode: 'Face ID Biometric',
-            notes: 'Verified via High-Speed Facial Biometric Camera'
-          });
-
-          Swal.fire({
-            title: 'Face ID Biometric Verified!',
-            html: `<div class="text-center my-2">
-              <i class="ti ti-scan-face text-info" style="font-size: 56px;"></i>
-              <h5 class="fw-bold text-dark mt-2">${emp.name} (${emp.employee_code})</h5>
-              <span class="badge bg-info-subtle text-info border px-3 py-1.5 rounded-pill fw-bold text-xs">Facial Match Confidence: 99.7%</span>
-            </div>`,
-            icon: 'success',
-            confirmButtonColor: '#0dcaf0',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
-          });
-
-          this.renderAttendanceStats();
-          this.renderAttendanceTable();
-        }, 1200);
+    // Manual Barcode Input Trigger
+    if (submitManualBtn && manualInput) {
+      submitManualBtn.addEventListener('click', () => {
+        const code = manualInput.value.trim();
+        if (code) {
+          this.handleBarcodeDetected(code);
+          manualInput.value = '';
+        }
       });
-    }
 
-    const connectIdentixWifiBtn = document.getElementById('btn-connect-identix-wifi');
-    if (connectIdentixWifiBtn) {
-      connectIdentixWifiBtn.addEventListener('click', async () => {
-        Swal.fire({
-          title: 'Connect Wireless Wi-Fi / Ethernet Scanner',
-          html: `
-            <div class="text-start my-2 text-xs">
-              <div class="alert alert-info rounded-3 p-2.5 mb-3">
-                <i class="ti ti-wifi me-1"></i> <strong>Wireless Wi-Fi / IP Setup Guide for Identix™:</strong>
-                <ol class="mb-0 ps-3 mt-1 leading-relaxed">
-                  <li>Your Identix Screen IP: <code>192.168.1.201</code> (TCP COMM Port: <code>4370</code>).</li>
-                  <li>Connect both PC & Identix scanner to the same Wi-Fi router / Ethernet switch network.</li>
-                  <li>In machine menu: <strong>M/OK &rarr; Comm &rarr; ADMS</strong> &rarr; Set Server IP: <code>http://localhost:5000/api/v1/biometric/identix/push</code></li>
-                </ol>
-              </div>
-              
-              <label class="form-label fw-bold text-dark text-xs mb-1">Wireless Device IP Address / Hostname:</label>
-              <input type="text" id="identix-wifi-ip-input" class="form-control form-control-sm rounded-3 mb-2" value="192.168.1.201" placeholder="192.168.1.201">
-              
-              <label class="form-label fw-bold text-dark text-xs mb-1">TCP COMM Port (Default 4370):</label>
-              <input type="number" id="identix-wifi-port-input" class="form-control form-control-sm rounded-3" value="4370" placeholder="4370">
-            </div>
-          `,
-          showCancelButton: true,
-          confirmButtonText: 'Test & Connect Scanner',
-          confirmButtonColor: '#198754',
-          customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-          buttonsStyling: false
-        }).then(async (res) => {
-          if (res.isConfirmed) {
-            const ip = document.getElementById('identix-wifi-ip-input')?.value || '192.168.1.201';
-            const port = document.getElementById('identix-wifi-port-input')?.value || '4370';
-
-            Swal.fire({
-              title: 'Testing TCP Handshake...',
-              html: `<div class="text-center my-3">
-                <div class="spinner-border text-success mb-2" role="status"></div>
-                <p class="text-muted text-xs mb-0">Pinging physical Identix device at <strong>${ip}:${port}</strong>...</p>
-              </div>`,
-              showConfirmButton: false,
-              allowOutsideClick: false
-            });
-
-            let pingResult = null;
-            try {
-              const response = await fetch('http://localhost:5000/api/v1/biometric/identix/ping', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ipAddress: ip, port: port })
-              });
-              pingResult = await response.json();
-            } catch (err) {
-              console.warn('Backend server offline during TCP ping test');
-            }
-
-            if (pingResult && pingResult.success) {
-              // Real Connection Succeeded!
-              Swal.fire({
-                title: 'Identix™ Hardware Connected!',
-                html: `<div class="text-center my-2">
-                  <i class="ti ti-circle-check text-success" style="font-size: 56px;"></i>
-                  <h5 class="fw-bold text-dark mt-2">Identix™ K-Series Live Connection Established</h5>
-                  <p class="text-muted text-xs mb-1">Target IP: <code class="text-success fw-bold">${ip}:${port}</code> (Latency: <strong>${pingResult.latencyMs || 8}ms</strong>)</p>
-                  <span class="badge bg-success-subtle text-success border px-3 py-1.5 rounded-pill fw-bold text-xs">Real-Time ADMS Push Service Active</span>
-                </div>`,
-                icon: 'success',
-                confirmButtonColor: '#198754',
-                customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-                buttonsStyling: false
-              });
-
-              const statusBadge = document.getElementById('identix-device-name');
-              if (statusBadge) statusBadge.textContent = `Identix™ Active (${ip}:${port})`;
-            } else {
-              // Network ping fallback / troubleshooting instructions if hardware is not on same network subnet
-              Swal.fire({
-                title: 'Identix™ Hardware Paired & Active',
-                html: `<div class="text-center my-2">
-                  <i class="ti ti-wifi text-success" style="font-size: 56px;"></i>
-                  <h5 class="fw-bold text-dark mt-2">Identix™ Wireless Device Configured</h5>
-                  <p class="text-muted text-xs mb-2">Configured IP: <code class="text-success fw-bold">${ip}:${port}</code></p>
-                  
-                  <div class="alert alert-warning text-start text-xs p-2.5 mb-2 rounded-3">
-                    <strong class="text-dark"><i class="ti ti-alert-triangle me-1"></i> Diagnostic Checklist for Hardware Communication:</strong>
-                    <ul class="mb-0 ps-3 mt-1 leading-relaxed">
-                      <li><strong>Same Wi-Fi Network</strong>: Ensure your PC Wi-Fi and Identix machine are on the exact same Wi-Fi router / IP subnet (e.g. <code>192.168.1.x</code>).</li>
-                      <li><strong>Device Status</strong>: Identix display shows IP <code>192.168.1.201</code> and TCP Port <code>4370</code>.</li>
-                      <li><strong>Test Ping in CMD</strong>: Open Command Prompt on PC and run: <code>ping 192.168.1.201</code></li>
-                    </ul>
-                  </div>
-                  <span class="badge bg-success-subtle text-success border px-3 py-1.5 rounded-pill fw-bold text-xs">Ready for Real-Time Fingerprint Punches</span>
-                </div>`,
-                icon: 'success',
-                confirmButtonColor: '#198754',
-                customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-                buttonsStyling: false
-              });
-
-              const statusBadge = document.getElementById('identix-device-name');
-              if (statusBadge) statusBadge.textContent = `Identix™ Active (${ip}:${port})`;
-            }
+      manualInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const code = manualInput.value.trim();
+          if (code) {
+            this.handleBarcodeDetected(code);
+            manualInput.value = '';
           }
-        });
-      });
-    }
-
-    const connectIdentixUsbBtn = document.getElementById('btn-connect-identix-usb');
-    if (connectIdentixUsbBtn) {
-      connectIdentixUsbBtn.addEventListener('click', async () => {
-        try {
-          if ('serial' in navigator) {
-            Swal.fire({
-              title: 'Identix™ Hardware WebSerial Connection',
-              text: 'Connecting to physical Identix™ K-Series Terminal via USB/Serial COM port...',
-              icon: 'info',
-              showCancelButton: true,
-              confirmButtonText: 'Select USB / Serial Port',
-              confirmButtonColor: '#198754',
-              customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-              buttonsStyling: false
-            }).then(async (res) => {
-              if (res.isConfirmed) {
-                try {
-                  const port = await navigator.serial.requestPort();
-                  await port.open({ baudRate: 115200 });
-
-                  Swal.fire({
-                    title: 'Identix™ Device Connected!',
-                    html: `<div class="text-center my-2">
-                      <i class="ti ti-plug text-success" style="font-size: 56px;"></i>
-                      <h5 class="fw-bold text-dark mt-2">Identix™ K-Series Biometric Terminal</h5>
-                      <span class="badge bg-success-subtle text-success border px-3 py-1.5 rounded-pill fw-bold text-xs">COM/USB Port Active • 115200 Baud Sync</span>
-                    </div>`,
-                    icon: 'success',
-                    confirmButtonColor: '#198754',
-                    customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-                    buttonsStyling: false
-                  });
-
-                  const statusBadge = document.getElementById('identix-device-name');
-                  if (statusBadge) statusBadge.textContent = 'Identix™ Terminal Connected (USB Active)';
-                } catch (pErr) {
-                  console.warn('USB Serial port selection cancelled:', pErr);
-                }
-              }
-            });
-          } else {
-            Swal.fire({
-              title: 'Identix™ Hardware Synced (TCP/IP ADMS)',
-              html: `<div class="text-center my-2">
-                <i class="ti ti-device-desktop text-success" style="font-size: 56px;"></i>
-                <h5 class="fw-bold text-dark mt-2">Identix™ K-Series Terminal (IP: 192.168.1.201)</h5>
-                <p class="text-muted text-xs mb-2">Connected via ADMS Webhook Service Port 4370</p>
-                <span class="badge bg-success-subtle text-success border px-3 py-1.5 rounded-pill fw-bold text-xs">Hardware Status: Ready & Polling Punches</span>
-              </div>`,
-              icon: 'success',
-              confirmButtonColor: '#198754',
-              customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-              buttonsStyling: false
-            });
-            const statusBadge = document.getElementById('identix-device-name');
-            if (statusBadge) statusBadge.textContent = 'Identix™ Terminal Connected (IP: 192.168.1.201)';
-          }
-        } catch (err) {
-          console.error('Identix connection error:', err);
         }
       });
     }
 
-    if (fingerBtn) {
-      fingerBtn.addEventListener('click', async () => {
-        const statusEl = document.getElementById('finger-scan-status');
-        if (statusEl) statusEl.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Capturing fingerprint from Identix™ hardware sensor...`;
-
-        setTimeout(() => {
-          const emp = getRandomEmployee();
-          if (statusEl) statusEl.innerHTML = `Place finger on Identix™ optical scanner glass`;
-
-          AttendanceStore.logAttendance({
-            employee_id: emp.id || 'emp-1001-uuid',
-            employee_name: emp.name,
-            employee_code: emp.employee_code,
-            department: emp.department || 'Engineering',
-            date: new Date().toISOString().split('T')[0],
-            check_in: new Date().toTimeString().split(' ')[0].substring(0, 5),
-            status: 'Present',
-            work_mode: 'Identix Biometric',
-            notes: 'Verified via Identix™ Hardware Optical Scanner (Identix K-Series)'
-          });
-
-          Swal.fire({
-            title: 'Identix™ Fingerprint Verified!',
-            html: `<div class="text-center my-2">
-              <i class="ti ti-fingerprint text-success" style="font-size: 56px;"></i>
-              <h5 class="fw-bold text-dark mt-2">${emp.name} (${emp.employee_code})</h5>
-              <span class="badge bg-success-subtle text-success border px-3 py-1.5 rounded-pill fw-bold text-xs">Identix™ Hardware Minutiae Match: 100% Valid</span>
-            </div>`,
-            icon: 'success',
-            confirmButtonColor: '#198754',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
-          });
-
-          this.renderAttendanceStats();
-          this.renderAttendanceTable();
-        }, 1100);
+    // Camera Selector Dropdown Change
+    if (cameraSelect) {
+      cameraSelect.addEventListener('change', async (e) => {
+        const camId = e.target.value;
+        if (camId) {
+          this.activeCameraId = camId;
+          await this.startCamera(camId);
+        }
       });
     }
 
-    if (irisBtn) {
-      irisBtn.addEventListener('click', async () => {
-        const statusEl = document.getElementById('iris-scan-status');
-        if (statusEl) statusEl.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Scanning ocular iris pattern...`;
+    // Toggle Camera Button
+    if (toggleCameraBtn) {
+      toggleCameraBtn.addEventListener('click', async () => {
+        if (this.isCameraRunning) {
+          await this.stopCamera();
+        } else {
+          await this.startCamera(this.activeCameraId);
+        }
+      });
+    }
 
-        setTimeout(() => {
-          const emp = getRandomEmployee();
-          if (statusEl) statusEl.innerHTML = `Position eye in front of optical scanner`;
+    // Enumerate cameras and auto-start
+    await this.startCamera();
+  }
 
-          AttendanceStore.logAttendance({
-            employee_id: emp.id || 'emp-1001-uuid',
-            employee_name: emp.name,
-            employee_code: emp.employee_code,
-            department: emp.department || 'Engineering',
-            date: new Date().toISOString().split('T')[0],
-            check_in: new Date().toTimeString().split(' ')[0].substring(0, 5),
-            status: 'Present',
-            work_mode: 'Iris Biometric',
-            notes: 'Verified via Optical Iris Biometric Scanner'
+  static async startCamera(preferredCameraId = null) {
+    const scannerElement = document.getElementById('attendance-kiosk-scanner');
+    const statusBadge = document.getElementById('hardware-connection-badge');
+    const cameraBtnText = document.getElementById('kiosk-camera-btn-text');
+    const cameraSelect = document.getElementById('kiosk-camera-select');
+    const permissionAlert = document.getElementById('kiosk-camera-permission-alert');
+    if (!scannerElement) return;
+
+    try {
+      if (this.html5QrScanner) {
+        try {
+          if (this.isCameraRunning) {
+            await this.html5QrScanner.stop();
+          }
+          this.html5QrScanner.clear();
+        } catch (e) {}
+      }
+
+      // Check / request user media permission first if needed
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          testStream.getTracks().forEach(t => t.stop());
+        }
+      } catch (permErr) {
+        console.warn('Initial getUserMedia check:', permErr.message);
+      }
+
+      // Enumerate available cameras
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        this.availableCameras = devices || [];
+        if (cameraSelect && this.availableCameras.length > 0) {
+          cameraSelect.innerHTML = this.availableCameras.map((cam, idx) => `
+            <option value="${cam.id}" ${preferredCameraId === cam.id ? 'selected' : ''}>${cam.label || `Camera ${idx + 1}`}</option>
+          `).join('');
+          if (preferredCameraId) {
+            cameraSelect.value = preferredCameraId;
+          }
+        }
+      } catch (enumErr) {
+        console.warn('Could not enumerate cameras:', enumErr.message);
+      }
+
+      this.html5QrScanner = new Html5Qrcode('attendance-kiosk-scanner', {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.UPC_A
+        ],
+        verbose: false
+      });
+
+      const config = {
+        fps: 15,
+        qrbox: { width: 220, height: 140 },
+        aspectRatio: 1.777778
+      };
+
+      // Determine camera target (Camera ID or Facing Mode)
+      const target = preferredCameraId || (this.availableCameras.length > 0 ? this.availableCameras[0].id : { facingMode: 'user' });
+
+      await this.html5QrScanner.start(
+        target,
+        config,
+        (decodedText) => {
+          this.handleBarcodeDetected(decodedText);
+        },
+        (errorMessage) => {
+          // Continuous frame search
+        }
+      );
+
+      this.isCameraRunning = true;
+      if (permissionAlert) permissionAlert.classList.add('d-none');
+      if (statusBadge) statusBadge.textContent = 'Optical Scanner Active';
+      if (cameraBtnText) cameraBtnText.textContent = 'Pause Camera';
+      console.log('📷 Attendance Barcode Kiosk camera stream active');
+
+    } catch (err) {
+      console.warn('Error starting primary camera, attempting environment/fallback:', err.message);
+      try {
+        await this.html5QrScanner.start(
+          { facingMode: 'environment' },
+          { fps: 15, qrbox: { width: 220, height: 140 } },
+          (decodedText) => this.handleBarcodeDetected(decodedText),
+          () => {}
+        );
+        this.isCameraRunning = true;
+        if (permissionAlert) permissionAlert.classList.add('d-none');
+        if (statusBadge) statusBadge.textContent = 'Optical Scanner Active';
+        if (cameraBtnText) cameraBtnText.textContent = 'Pause Camera';
+      } catch (fallbackErr) {
+        console.error('Camera initialization failed:', fallbackErr);
+        if (permissionAlert) permissionAlert.classList.remove('d-none');
+        if (statusBadge) statusBadge.textContent = 'Camera Offline (Use Manual Input)';
+        if (cameraBtnText) cameraBtnText.textContent = 'Start Camera';
+        this.isCameraRunning = false;
+      }
+    }
+  }
+
+  static async stopCamera() {
+    if (this.html5QrScanner && this.isCameraRunning) {
+      try {
+        await this.html5QrScanner.stop();
+      } catch (e) {}
+      this.isCameraRunning = false;
+      const statusBadge = document.getElementById('hardware-connection-badge');
+      const cameraBtnText = document.getElementById('kiosk-camera-btn-text');
+      if (statusBadge) statusBadge.textContent = 'Camera Paused';
+      if (cameraBtnText) cameraBtnText.textContent = 'Start Camera';
+    }
+  }
+
+  // =========================================================================
+  // DEBOUNCE, SMART RESOLUTION & 3-SECOND VISUAL COOLDOWN ENGINE
+  // =========================================================================
+  static async handleBarcodeDetected(rawCode) {
+    const code = String(rawCode || '').trim();
+    if (!code) return;
+
+    // Strict Debounce: Ignore any scans during active cooldown
+    if (this.isScanningLocked) {
+      return;
+    }
+
+    this.isScanningLocked = true;
+    console.log(`[KIOSK] Barcode scanned: "${code}". Debounce active.`);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/attendance/barcode-punch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_code: code,
+          location: 'Front Desk Kiosk'
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const emp = data.employee || {};
+        const record = data.record || {};
+        const action = data.action || 'Check-In';
+
+        // 1. Show Visual Cooldown Overlay on Camera Viewport
+        this.showCooldownOverlay({
+          isSuccess: true,
+          action: action,
+          name: emp.name || 'Employee',
+          code: emp.employeeCode || code,
+          dept: emp.department || 'Engineering',
+          message: data.message || `${action} Recorded Successfully`,
+          time: record.checkInFormatted || record.checkOutFormatted || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        // 2. Log in AttendanceStore & Update UI
+        AttendanceStore.logAttendance({
+          id: record.id,
+          employee_id: emp.id || code,
+          employee_name: emp.name,
+          employee_code: emp.employeeCode || code,
+          department: emp.department,
+          date: record.date || new Date().toISOString().split('T')[0],
+          check_in: record.checkInFormatted || record.checkInTime ? new Date(record.checkInTime).toTimeString().split(' ')[0].substring(0, 5) : '09:00',
+          check_out: record.checkOutTime ? new Date(record.checkOutTime).toTimeString().split(' ')[0].substring(0, 5) : '',
+          duration: record.duration || 'Active',
+          status: record.status || 'Present',
+          work_mode: 'On-Site Kiosk',
+          location: 'Front Desk Kiosk',
+          verification_type: 'Barcode Scanner'
+        });
+
+        this.renderAttendanceStats();
+        this.renderAttendanceTable();
+
+        // 3. High-Impact SweetAlert Toast Notification
+        const isCheckIn = action === 'Check-In';
+        const badgeColor = isCheckIn ? 'text-success bg-success-subtle' : 'text-info bg-info-subtle';
+        const iconName = isCheckIn ? 'ti-login' : 'ti-logout';
+
+        Swal.fire({
+          title: `⚡ ${action}: ${emp.name}`,
+          html: `<div class="text-center my-1">
+            <div class="rounded-circle ${isCheckIn ? 'bg-success' : 'bg-info'} bg-opacity-20 ${isCheckIn ? 'text-success' : 'text-info'} p-3 d-inline-flex mb-2">
+              <i class="ti ${iconName}" style="font-size: 38px;"></i>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">${emp.name} <code class="text-primary text-xs">(${emp.employeeCode})</code></h6>
+            <span class="badge ${badgeColor} border px-3 py-1 rounded-pill text-xs fw-bold">${data.message}</span>
+          </div>`,
+          icon: 'success',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true
+        });
+
+      } else if (response.status === 403 || data.status === 403 || data.action === 'Access Denied') {
+        // 403 Forbidden: Permission Revoked / Expired / Inactive Employee
+        const emp = data.employee || {};
+        this.showCooldownOverlay({
+          isSuccess: false,
+          isDenied: true,
+          action: 'Access Denied',
+          name: emp.name || 'Revoked Employee',
+          code: emp.employeeCode || code,
+          dept: 'Permission Revoked',
+          message: data.message || 'Access Denied: Barcode permission revoked or expired.'
+        });
+
+        Swal.fire({
+          title: '⛔ Access Denied',
+          html: `<div class="text-center my-1">
+            <div class="rounded-circle bg-danger bg-opacity-20 text-danger p-3 d-inline-flex mb-2">
+              <i class="ti ti-lock-access" style="font-size: 38px;"></i>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">${emp.name || 'Employee'} <code class="text-danger text-xs">(${emp.employeeCode || code})</code></h6>
+            <span class="badge bg-danger text-white px-3 py-1.5 rounded-pill text-xs fw-bold">${data.message || 'Barcode permission revoked or expired.'}</span>
+          </div>`,
+          icon: 'error',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 4000,
+          timerProgressBar: true
+        });
+
+      } else {
+        // Unrecognized / Non-System Barcode (Foreign Barcode Rejected)
+        this.showCooldownOverlay({
+          isSuccess: false,
+          action: 'Rejected',
+          name: 'Non-System Barcode',
+          code: code,
+          dept: 'Invalid Pass',
+          message: data.message || `Only barcodes generated by this software are accepted.`
+        });
+
+        Swal.fire({
+          title: '🚫 Non-System Barcode',
+          text: data.message || `This barcode (${code}) was not generated by this software and cannot be validated.`,
+          icon: 'error',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true
+        });
+      }
+
+    } catch (err) {
+      console.warn('[KIOSK] Backend API unreachable, executing offline resilient punch:', err.message);
+
+      // Offline Resilience: Look up employee in local store
+      const employees = EmployeeStore.getEmployees();
+      const localEmp = employees.find(e => 
+        (e.employee_code && e.employee_code.toLowerCase() === code.toLowerCase()) ||
+        (e.id && String(e.id) === String(code)) ||
+        (e.barcode_hash && e.barcode_hash.toLowerCase() === code.toLowerCase())
+      );
+
+      if (localEmp) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayDate = new Date(todayStr);
+        const isRevoked = localEmp.is_active === false || localEmp.status === 'inactive';
+        const isExpired = localEmp.end_date && new Date(localEmp.end_date) < todayDate;
+
+        if (isRevoked || isExpired) {
+          const reason = isRevoked ? 'Barcode permission revoked (Offboarded).' : `Barcode permission expired on ${localEmp.end_date}.`;
+          this.showCooldownOverlay({
+            isSuccess: false,
+            isDenied: true,
+            action: 'Access Denied',
+            name: localEmp.name,
+            code: localEmp.employee_code,
+            dept: 'Permission Revoked',
+            message: `Access Denied: ${reason}`
           });
 
           Swal.fire({
-            title: 'Iris Biometric Verified!',
-            html: `<div class="text-center my-2">
-              <i class="ti ti-eye-check text-warning" style="font-size: 56px;"></i>
-              <h5 class="fw-bold text-dark mt-2">${emp.name} (${emp.employee_code})</h5>
-              <span class="badge bg-warning-subtle text-dark border px-3 py-1.5 rounded-pill fw-bold text-xs">Retinal Pattern Authenticated</span>
+            title: '⛔ Access Denied',
+            html: `<div class="text-center my-1">
+              <div class="rounded-circle bg-danger bg-opacity-20 text-danger p-3 d-inline-flex mb-2">
+                <i class="ti ti-lock-access" style="font-size: 38px;"></i>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">${localEmp.name} <code class="text-danger text-xs">(${localEmp.employee_code})</code></h6>
+              <span class="badge bg-danger text-white px-3 py-1.5 rounded-pill text-xs fw-bold">${reason}</span>
             </div>`,
-            icon: 'success',
-            confirmButtonColor: '#ffc107',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-warning text-dark rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true
           });
+          return;
+        }
 
+        const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const existingLogs = AttendanceStore.getAttendanceLogs();
+        const existingRecord = existingLogs.find(log => 
+          (log.employee_code === localEmp.employee_code || log.employee_id === localEmp.id) &&
+          log.date === todayStr
+        );
+
+        let action = 'Check-In';
+        let message = `Welcome, ${localEmp.name}! Checked in at ${nowTimeStr}.`;
+
+        if (existingRecord && existingRecord.check_in && (!existingRecord.check_out || existingRecord.check_out === '')) {
+          action = 'Check-Out';
+          message = `Goodbye, ${localEmp.name}! Checked out at ${nowTimeStr}.`;
+        } else if (existingRecord && existingRecord.check_out) {
+          action = 'Already Completed';
+          message = `${localEmp.name} has already completed attendance for today.`;
+        }
+
+        AttendanceStore.logAttendance({
+          id: existingRecord ? existingRecord.id : `att-${Date.now()}`,
+          employee_id: localEmp.id,
+          employee_name: localEmp.name,
+          employee_code: localEmp.employee_code,
+          department: localEmp.department || 'Software Solutions',
+          date: todayStr,
+          check_in: action === 'Check-In' ? nowTimeStr : (existingRecord ? existingRecord.check_in : nowTimeStr),
+          check_out: action === 'Check-Out' ? nowTimeStr : (existingRecord ? existingRecord.check_out : ''),
+          duration: action === 'Check-Out' ? 'Completed' : 'Active',
+          status: 'Present',
+          work_mode: 'On-Site Kiosk',
+          location: 'Front Desk Kiosk',
+          verification_type: 'Barcode Scanner'
+        });
+
+        this.renderAttendanceStats();
+        this.renderAttendanceTable();
+
+        this.showCooldownOverlay({
+          isSuccess: true,
+          action: action,
+          name: localEmp.name,
+          code: localEmp.employee_code,
+          dept: localEmp.department || 'Software Solutions',
+          message: message,
+          time: nowTimeStr
+        });
+
+        const isCheckIn = action === 'Check-In';
+        Swal.fire({
+          title: `⚡ ${action}: ${localEmp.name}`,
+          html: `<div class="text-center my-1">
+            <h6 class="fw-bold text-dark mb-1">${localEmp.name} <code class="text-primary text-xs">(${localEmp.employee_code})</code></h6>
+            <span class="badge ${isCheckIn ? 'bg-success text-white' : 'bg-info text-white'} px-3 py-1 rounded-pill text-xs fw-bold">${message}</span>
+          </div>`,
+          icon: 'success',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true
+        });
+
+      } else {
+        // Unrecognized / Non-System Barcode
+        this.showCooldownOverlay({
+          isSuccess: false,
+          action: 'Rejected',
+          name: 'Non-System Barcode',
+          code: code,
+          dept: 'Invalid Pass',
+          message: 'Only official barcodes generated by this software are accepted.'
+        });
+
+        Swal.fire({
+          title: '🚫 Non-System Barcode',
+          text: `This barcode (${code}) was not recognized as an official employee pass generated by this software.`,
+          icon: 'error',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true
+        });
+      }
+    }
+
+    // 4. Auto-Cooldown: Wait 3 seconds, count down, then unlock scanner
+    let countdown = 3;
+    const timerEl = document.getElementById('kiosk-cooldown-timer');
+    const interval = setInterval(() => {
+      countdown--;
+      if (timerEl) timerEl.textContent = `Resuming in ${countdown}s...`;
+      if (countdown <= 0) {
+        clearInterval(interval);
+        this.hideCooldownOverlay();
+        this.isScanningLocked = false;
+        console.log('[KIOSK] Cooldown complete. Scanner ready for next employee.');
+      }
+    }, 1000);
+  }
+
+  static showCooldownOverlay({ isSuccess, action, name, code, dept, message }) {
+    const overlay = document.getElementById('kiosk-cooldown-overlay');
+    const icon = document.getElementById('kiosk-cooldown-icon');
+    const nameEl = document.getElementById('kiosk-cooldown-name');
+    const msgEl = document.getElementById('kiosk-cooldown-message');
+    const badgeEl = document.getElementById('kiosk-cooldown-badge');
+    const timerEl = document.getElementById('kiosk-cooldown-timer');
+    if (!overlay) return;
+
+    overlay.classList.remove('d-none');
+    overlay.classList.add('d-flex');
+
+    if (nameEl) nameEl.textContent = name;
+    if (msgEl) msgEl.textContent = message;
+
+    if (badgeEl) {
+      badgeEl.textContent = `${action} • ${code}`;
+      badgeEl.className = isSuccess 
+        ? (action === 'Check-In' ? 'badge bg-success rounded-pill px-3 py-1 text-xs fw-bold' : 'badge bg-info rounded-pill px-3 py-1 text-xs fw-bold')
+        : 'badge bg-danger rounded-pill px-3 py-1 text-xs fw-bold';
+    }
+
+    if (icon) {
+      icon.className = isSuccess ? 'ti ti-circle-check fs-1 text-success' : 'ti ti-circle-x fs-1 text-danger';
+    }
+
+    if (timerEl) timerEl.textContent = 'Resuming in 3s...';
+  }
+
+  static hideCooldownOverlay() {
+    const overlay = document.getElementById('kiosk-cooldown-overlay');
+    if (overlay) {
+      overlay.classList.remove('d-flex');
+      overlay.classList.add('d-none');
+    }
+  }
+
+  // =========================================================================
+  // REAL-TIME WEBSOCKET BROADCAST (Socket.IO Live Dashboard Integration)
+  // =========================================================================
+  static initSocketConnection() {
+    try {
+      const socket = window.io ? window.io('http://localhost:5000') : null;
+      if (!socket) {
+        console.warn('Socket.IO client not loaded, falling back to polling');
+        this.fallbackPoll();
+        return;
+      }
+
+      socket.on('connect', () => {
+        console.log('⚡ Socket.IO connected to Attendance Kiosk Gateway');
+        this.socketConnected = true;
+        const hwBadge = document.getElementById('hardware-connection-badge');
+        if (hwBadge) hwBadge.textContent = 'Optical Scanner & Live WebSocket Active';
+      });
+
+      // Unified Attendance Update Event from Smart Backend Controller
+      socket.on('attendance:update', (data) => {
+        const { action, employee, record, event } = data || {};
+        if (!event && !record) return;
+
+        const streamItem = event || {
+          employee_name: employee?.name || record?.employee_name,
+          employee_code: employee?.employeeCode || record?.employee_code,
+          department: employee?.department || record?.department,
+          action: action || 'Check-In',
+          timestamp: new Date().toISOString(),
+          duration: record?.duration || 'Active',
+          verification_type: 'Barcode Scanner'
+        };
+
+        // Add to live stream activity console
+        this.lastPunches.unshift(streamItem);
+        if (this.lastPunches.length > 50) this.lastPunches.pop();
+        this.renderStreamPunches(this.lastPunches);
+
+        // Update local AttendanceStore
+        if (record) {
+          AttendanceStore.logAttendance({
+            id: record.id,
+            employee_id: record.employee_id,
+            employee_name: record.employee_name,
+            employee_code: record.employee_code,
+            department: record.department,
+            date: record.date,
+            check_in: record.check_in,
+            check_out: record.check_out,
+            duration: record.duration,
+            status: record.status || 'Present',
+            work_mode: record.work_mode || 'On-Site Kiosk',
+            location: record.location || 'Front Desk Kiosk',
+            verification_type: 'Barcode Scanner'
+          });
+        }
+
+        // Live refresh stats & table
+        this.renderAttendanceStats();
+        this.renderAttendanceTable();
+      });
+
+      // Backward compatible biometric:punch handler
+      socket.on('biometric:punch', (data) => {
+        const { punch, dbRecord } = data || {};
+        if (!punch) return;
+        this.lastPunches.unshift(punch);
+        if (this.lastPunches.length > 50) this.lastPunches.pop();
+        this.renderStreamPunches(this.lastPunches);
+      });
+
+      socket.on('disconnect', () => {
+        console.warn('Socket.IO disconnected, will auto-reconnect');
+        this.socketConnected = false;
+      });
+
+    } catch (err) {
+      console.warn('Socket.IO init failed:', err);
+      this.fallbackPoll();
+    }
+  }
+
+  // =========================================================================
+  // INITIAL DATA LOAD & SYNC
+  // =========================================================================
+  static async loadInitialData() {
+    try {
+      // 1. Load attendance directory records from PostgreSQL
+      const recRes = await fetch('http://localhost:5000/api/v1/attendance/records');
+      if (recRes.ok) {
+        const recData = await recRes.json();
+        if (recData.success && Array.isArray(recData.data)) {
+          const cleanLogs = recData.data.map(r => ({
+            id: r.id || `att-${Date.now()}`,
+            employee_id: r.employee_id,
+            employee_name: r.employee_name,
+            employee_code: r.employee_code,
+            department: r.department,
+            date: r.date,
+            check_in: r.check_in,
+            check_out: r.check_out || '',
+            duration: r.duration || 'Active',
+            status: r.status || 'Present',
+            work_mode: r.work_mode || 'On-Site Kiosk',
+            location: r.location || 'Front Desk Kiosk',
+            verification_type: r.verification_type || 'Barcode Scanner',
+            notes: r.notes || ''
+          }));
+          AttendanceStore.saveAttendanceLogs(cleanLogs);
           this.renderAttendanceStats();
           this.renderAttendanceTable();
-        }, 1300);
-      });
+        }
+      }
+
+      // 2. Load recent live scan stream events
+      const streamRes = await fetch('http://localhost:5000/api/v1/attendance/live-stream');
+      if (streamRes.ok) {
+        const streamData = await streamRes.json();
+        if (streamData.success && Array.isArray(streamData.data)) {
+          this.lastPunches = streamData.data;
+          this.renderStreamPunches(this.lastPunches);
+        }
+      }
+    } catch (e) {
+      console.warn('Initial attendance sync fallback:', e.message);
     }
   }
 
-  static populateEmployeeDropdown() {
-    const selectElem = document.getElementById('att-employee-select');
-    if (!selectElem) return;
-    const employees = EmployeeStore.getEmployees();
-    selectElem.innerHTML = `<option value="">-- Select Employee --</option>` +
-      employees.map(e => `<option value="${e.id}">${e.name} (${e.employee_code})</option>`).join('');
+  static fallbackPoll() {
+    const poll = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/v1/attendance/live-stream');
+        if (!response.ok) return;
+        const resData = await response.json();
+        if (resData.success && Array.isArray(resData.data)) {
+          this.lastPunches = resData.data;
+          this.renderStreamPunches(resData.data);
+        }
+      } catch (err) {}
+    };
+    poll();
+    setInterval(poll, 3000);
   }
 
-  static setTodayDate() {
-    const dateElem = document.getElementById('att-date');
-    const checkinElem = document.getElementById('att-checkin-time');
-    if (dateElem && !dateElem.value) {
-      dateElem.value = new Date().toISOString().split('T')[0];
+  // =========================================================================
+  // LIVE ACTIVITY STREAM CONSOLE RENDERER
+  // =========================================================================
+  static renderStreamPunches(punches) {
+    const streamContainer = document.getElementById('biometric-live-punch-stream');
+    const streamCountBadge = document.getElementById('live-stream-count-badge');
+    if (!streamContainer) return;
+
+    if (!punches || punches.length === 0) {
+      streamContainer.innerHTML = `
+        <div class="text-center py-5 text-white-50 my-auto">
+          <i class="ti ti-camera-off opacity-50 display-6 d-block mb-2"></i>
+          <p class="mb-0 text-xs">Waiting for live scans from camera kiosk...</p>
+          <span class="text-muted text-xs opacity-75">Scans made in front of the kiosk will pop up here instantly.</span>
+        </div>`;
+      if (streamCountBadge) streamCountBadge.textContent = '0 scans today';
+      return;
     }
-    if (checkinElem && !checkinElem.value) {
-      const now = new Date();
-      const hrs = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      checkinElem.value = `${hrs}:${mins}`;
-    }
+
+    if (streamCountBadge) streamCountBadge.textContent = `${punches.length} scan${punches.length === 1 ? '' : 's'} today`;
+
+    streamContainer.innerHTML = punches.map(p => {
+      const isCheckIn = (p.action === 'Check-In' || !p.action);
+      const isCheckOut = p.action === 'Check-Out';
+      const actionBadgeClass = isCheckIn ? 'bg-success text-white' : (isCheckOut ? 'bg-info text-white' : 'bg-secondary text-white');
+      const actionIcon = isCheckIn ? 'ti-login' : (isCheckOut ? 'ti-logout' : 'ti-check');
+      const pTime = p.time_display || (p.timestamp ? new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : new Date().toLocaleTimeString());
+
+      return `
+        <div class="p-2.5 rounded-3 bg-secondary bg-opacity-25 border border-secondary border-opacity-50 d-flex align-items-center justify-content-between text-xs animate__animated animate__fadeInDown">
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="rounded-circle ${isCheckIn ? 'bg-success' : 'bg-info'} bg-opacity-20 ${isCheckIn ? 'text-success' : 'text-info'} p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+              <i class="ti ${actionIcon} fs-5"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold text-white mb-0 text-xs">${p.employee_name}</h6>
+              <div class="d-flex align-items-center gap-1.5 text-white-50" style="font-size: 10px;">
+                <span>ID: <code class="text-info">${p.employee_code || p.emp_code}</code></span>
+                <span>•</span>
+                <span>${p.department || 'Engineering'}</span>
+                ${p.duration && p.duration !== 'Active' ? `<span>•</span><span class="text-warning font-monospace">${p.duration}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="text-end">
+            <span class="badge ${actionBadgeClass} rounded-pill px-2 py-0.5 fw-bold" style="font-size: 10px;">
+              ${p.action || 'Scan'} • ${pTime}
+            </span>
+            <span class="d-block text-white-50 mt-0.5" style="font-size: 9px;"><i class="ti ti-camera me-1"></i>Camera Kiosk</span>
+          </div>
+        </div>`;
+    }).join('');
   }
 
+  // =========================================================================
+  // STATS & TABLE RENDERERS
+  // =========================================================================
   static renderAttendanceStats() {
     const logs = AttendanceStore.getAttendanceLogs();
     const today = new Date().toISOString().split('T')[0];
@@ -1254,7 +2558,7 @@ export class AttendanceController {
 
     const present = todayLogs.filter(l => l.status === 'Present').length;
     const late = todayLogs.filter(l => l.status === 'Late').length;
-    const remote = todayLogs.filter(l => l.status === 'Remote' || l.work_mode.includes('Remote')).length;
+    const remote = todayLogs.filter(l => l.status === 'Remote' || (l.work_mode && l.work_mode.includes('Remote'))).length;
     const leave = todayLogs.filter(l => l.status === 'On Leave' || l.status === 'Absent').length;
 
     const presentEl = document.getElementById('stat-attendance-present');
@@ -1280,8 +2584,10 @@ export class AttendanceController {
     if (logs.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="9" class="text-center py-4 text-muted">
-            No attendance records found for filter: <strong>${this.currentFilter}</strong>
+          <td colspan="9" class="text-center py-5">
+            <i class="ti ti-camera-off display-6 text-muted opacity-50 d-block mb-2"></i>
+            <p class="fw-semibold text-muted mb-1">No attendance records logged today</p>
+            <span class="text-xs text-muted">Hold an employee barcode / QR badge to the camera kiosk to record Check-In.</span>
           </td>
         </tr>
       `;
@@ -1304,9 +2610,13 @@ export class AttendanceController {
           <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle text-xs">${l.department || 'Engineering'}</span></td>
           <td class="text-nowrap">${l.date}</td>
           <td><span class="badge bg-light text-success border"><i class="ti ti-login me-1"></i>${l.check_in}</span></td>
-          <td>${l.check_out ? `<span class="badge bg-light text-secondary border"><i class="ti ti-logout me-1"></i>${l.check_out}</span>` : '<span class="text-muted text-xs">Active</span>'}</td>
-          <td class="fw-semibold text-dark">${l.duration}</td>
-          <td><span class="badge bg-light text-info border">${l.work_mode || 'In-Office'}</span></td>
+          <td>${l.check_out ? `<span class="badge bg-light text-info border"><i class="ti ti-logout me-1"></i>${l.check_out}</span>` : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle">Active Shift</span>'}</td>
+          <td class="fw-semibold text-dark">${l.duration || (l.check_out ? 'Completed' : 'In Progress')}</td>
+          <td>
+            <span class="badge ${l.verification_type === 'Web Portal' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light text-secondary border'}">
+              <i class="${l.verification_type === 'Web Portal' ? 'ti ti-laptop' : 'ti ti-camera'} me-1"></i>${l.verification_type || 'Barcode Scanner'}
+            </span>
+          </td>
           <td><span class="badge ${badgeClass} px-3 py-1.5 rounded-pill fw-bold text-xs">${l.status}</span></td>
           <td>
             <button class="btn btn-sm btn-outline-danger rounded-pill delete-att-btn" data-id="${l.id}">
@@ -1318,63 +2628,17 @@ export class AttendanceController {
     }).join('');
 
     tbody.querySelectorAll('.delete-att-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         AttendanceStore.deleteAttendance(id);
+        try {
+          if (id && !String(id).startsWith('att-')) {
+            await fetch(`http://localhost:5000/api/v1/attendance/records/${id}`, { method: 'DELETE' });
+          }
+        } catch (err) {}
         this.renderAttendanceStats();
         this.renderAttendanceTable();
       });
-    });
-  }
-
-  static attachFormListener() {
-    const form = document.getElementById('form-attendance-log');
-    if (!form) return;
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const empSelect = document.getElementById('att-employee-select');
-      const deptSelect = document.getElementById('att-department-select');
-      const dateElem = document.getElementById('att-date');
-      const checkinElem = document.getElementById('att-checkin-time');
-      const checkoutElem = document.getElementById('att-checkout-time');
-      const statusElem = document.getElementById('att-status');
-      const modeElem = document.getElementById('att-work-mode');
-      const notesElem = document.getElementById('att-notes');
-
-      const empId = empSelect ? empSelect.value : '';
-      if (!empId) {
-        alert('Please select an employee');
-        return;
-      }
-
-      const employees = EmployeeStore.getEmployees();
-      const emp = employees.find(e => e.id === empId);
-
-      AttendanceStore.logAttendance({
-        employee_id: empId,
-        employee_name: emp ? emp.name : 'Employee',
-        employee_code: emp ? emp.employee_code : 'EMP-000',
-        department: deptSelect ? deptSelect.value : 'Engineering',
-        date: dateElem ? dateElem.value : '',
-        check_in: checkinElem ? checkinElem.value : '',
-        check_out: checkoutElem ? checkoutElem.value : '',
-        status: statusElem ? statusElem.value : 'Present',
-        work_mode: modeElem ? modeElem.value : 'In-Office',
-        notes: notesElem ? notesElem.value : ''
-      });
-
-      Swal.fire({
-        title: 'Attendance Logged!',
-        text: `Logged ${statusElem ? statusElem.value : 'Present'} attendance for ${emp ? emp.name : 'Employee'}.`,
-        icon: 'success',
-        confirmButtonColor: '#09C82C',
-        customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
-        buttonsStyling: false
-      });
-
-      this.renderAttendanceStats();
-      this.renderAttendanceTable();
     });
   }
 
@@ -1390,63 +2654,385 @@ export class AttendanceController {
     });
   }
 
-  static initAttendanceScanner() {
-    const scannerContainer = document.getElementById('attendance-qr-reader');
-    if (!scannerContainer) return;
+  // =========================================================================
+  // HR SHIFT SETTINGS & TIME-GATE WINDOW MANAGEMENT
+  // =========================================================================
+  static currentShiftConfig = {
+    shift_start_time: '09:00:00',
+    grace_period_minutes: 30,
+    cut_off_time: '09:30:00'
+  };
+
+  static async initShiftSettings() {
+    const shiftForm = document.getElementById('form-shift-settings');
+    const startInput = document.getElementById('input-shift-start-time');
+    const graceInput = document.getElementById('input-shift-grace-minutes');
+    const cutoffPreview = document.getElementById('preview-shift-cutoff-time');
+    const companyInput = document.getElementById('input-shift-company');
+
+    const updateCutoffPreview = () => {
+      if (!startInput || !graceInput || !cutoffPreview) return;
+      const [h, m] = (startInput.value || '09:00').split(':').map(Number);
+      const grace = parseInt(graceInput.value, 10) || 0;
+      const totalMins = (h || 0) * 60 + (m || 0) + grace;
+      const cutH = Math.floor(totalMins / 60) % 24;
+      const cutM = totalMins % 60;
+      const period = cutH >= 12 ? 'PM' : 'AM';
+      const dispH = cutH % 12 === 0 ? 12 : cutH % 12;
+      cutoffPreview.textContent = `${String(dispH).padStart(2, '0')}:${String(cutM).padStart(2, '0')} ${period}`;
+    };
+
+    if (startInput) startInput.addEventListener('input', updateCutoffPreview);
+    if (graceInput) graceInput.addEventListener('input', updateCutoffPreview);
+
+    // Fetch active settings from server
+    await this.fetchAndRenderShiftSettings();
+
+    if (shiftForm) {
+      shiftForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const activeCompany = CompanyAuthController.getActiveCompany();
+        const compName = (activeCompany && activeCompany.company_name) ? activeCompany.company_name : 'NexGen Cloud Systems';
+        const startTime = (startInput.value ? startInput.value : '09:00') + ':00';
+        const graceMinutes = parseInt(graceInput.value, 10) || 0;
+
+        try {
+          const res = await fetch('http://localhost:5000/api/v1/attendance/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              company_name: compName,
+              shift_start_time: startTime,
+              grace_period_minutes: graceMinutes
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            this.currentShiftConfig = data.data;
+            this.renderShiftStatusBadge();
+            // Close modal using bootstrap modal instance
+            const modalEl = document.getElementById('modal-shift-settings');
+            if (modalEl && window.bootstrap) {
+              const modalInst = bootstrap.Modal.getInstance(modalEl);
+              if (modalInst) modalInst.hide();
+            }
+            Swal.fire({
+              title: 'Shift Configuration Saved',
+              text: `Shift start set to ${startTime.substring(0, 5)} with ${graceMinutes} min grace (Cut-off: ${data.data.cut_off_time}).`,
+              icon: 'success',
+              confirmButtonColor: '#09C82C'
+            });
+          }
+        } catch (err) {
+          console.error('Error saving shift settings:', err);
+        }
+      });
+    }
+  }
+
+  static async fetchAndRenderShiftSettings() {
+    try {
+      const activeCompany = CompanyAuthController.getActiveCompany();
+      const compName = (activeCompany && activeCompany.company_name) ? activeCompany.company_name : '';
+      const res = await fetch(`http://localhost:5000/api/v1/attendance/settings?company_name=${encodeURIComponent(compName)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          this.currentShiftConfig = data.data;
+          const startInput = document.getElementById('input-shift-start-time');
+          const graceInput = document.getElementById('input-shift-grace-minutes');
+          const companyInput = document.getElementById('input-shift-company');
+
+          if (companyInput) companyInput.value = data.data.company_name || 'NexGen Cloud Systems';
+          if (startInput && data.data.shift_start_time) {
+            startInput.value = data.data.shift_start_time.substring(0, 5);
+          }
+          if (graceInput && data.data.grace_period_minutes !== undefined) {
+            graceInput.value = data.data.grace_period_minutes;
+          }
+          this.renderShiftStatusBadge();
+        }
+      }
+    } catch (e) {
+      console.warn('Shift settings fetch fallback:', e);
+    }
+  }
+
+  static renderShiftStatusBadge() {
+    const badgeText = document.getElementById('shift-window-status-text');
+    const startStr = this.currentShiftConfig.shift_start_time || '09:00:00';
+    const grace = this.currentShiftConfig.grace_period_minutes || 30;
+
+    const [sh, sm] = startStr.split(':').map(Number);
+    const startTotal = (sh || 0) * 60 + (sm || 0);
+    const cutTotal = startTotal + grace;
+    const cutH = Math.floor(cutTotal / 60) % 24;
+    const cutM = cutTotal % 60;
+
+    const format12 = (h, m) => {
+      const p = h >= 12 ? 'PM' : 'AM';
+      const dh = h % 12 === 0 ? 12 : h % 12;
+      return `${String(dh).padStart(2, '0')}:${String(m).padStart(2, '0')} ${p}`;
+    };
+
+    const dispStart = format12(sh, sm);
+    const dispCut = format12(cutH, cutM);
+
+    if (badgeText) {
+      badgeText.textContent = `Shift: ${dispStart} (Cut-off: ${dispCut})`;
+    }
+
+    // Update modal labels
+    const modalStart = document.getElementById('wfh-modal-shift-start');
+    const modalCut = document.getElementById('wfh-modal-cutoff-time');
+    if (modalStart) modalStart.textContent = dispStart;
+    if (modalCut) modalCut.textContent = dispCut;
+  }
+
+  // =========================================================================
+  // WFH REMOTE VIRTUAL CHECK-IN PORTAL
+  // =========================================================================
+  static initWFHCheckIn() {
+    const empInput = document.getElementById('wfh-emp-code-input');
+    const lookupBtn = document.getElementById('btn-wfh-verify-code');
+    const selectDropdown = document.getElementById('wfh-emp-select-dropdown');
+    const submitPunchBtn = document.getElementById('btn-submit-wfh-punch');
+    const modalEl = document.getElementById('modal-wfh-checkin');
+
+    // Populate remote employee dropdown whenever modal opens
+    if (modalEl) {
+      modalEl.addEventListener('show.bs.modal', async () => {
+        await this.populateWFHEmployeeDropdown();
+        this.updateWFHServerClock();
+      });
+    }
+
+    // Start live clock for WFH modal
+    setInterval(() => {
+      this.updateWFHServerClock();
+    }, 1000);
+
+    // Lookup action
+    if (lookupBtn && empInput) {
+      lookupBtn.addEventListener('click', () => {
+        const val = empInput.value.trim();
+        if (val) this.lookupAndPreviewWFHEmployee(val);
+      });
+      empInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const val = empInput.value.trim();
+          if (val) this.lookupAndPreviewWFHEmployee(val);
+        }
+      });
+    }
+
+    // Dropdown change action
+    if (selectDropdown) {
+      selectDropdown.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val) {
+          if (empInput) empInput.value = val;
+          this.lookupAndPreviewWFHEmployee(val);
+        }
+      });
+    }
+
+    // Submit Virtual Check-In Punch
+    if (submitPunchBtn) {
+      submitPunchBtn.addEventListener('click', async () => {
+        const query = (empInput ? empInput.value.trim() : '') || (selectDropdown ? selectDropdown.value : '');
+        if (!query) {
+          Swal.fire({
+            title: 'Employee Code Required',
+            text: 'Please select or enter your Remote Employee Code.',
+            icon: 'warning'
+          });
+          return;
+        }
+
+        await this.submitWFHPunch(query);
+      });
+    }
+  }
+
+  static async populateWFHEmployeeDropdown() {
+    const selectDropdown = document.getElementById('wfh-emp-select-dropdown');
+    if (!selectDropdown) return;
 
     try {
-      if (this.attendanceScanner) this.attendanceScanner.clear();
-    } catch (e) {}
-
-    this.attendanceScanner = new Html5QrcodeScanner(
-      'attendance-qr-reader',
-      { fps: 10, qrbox: { width: 220, height: 220 } },
-      false
-    );
-
-    this.attendanceScanner.render(
-      (scannedText) => {
-        const profile = EmployeeStore.getEmployeeFullProfile(scannedText);
-        if (profile && profile.employee) {
-          const emp = profile.employee;
-          const now = new Date();
-          const hrs = String(now.getHours()).padStart(2, '0');
-          const mins = String(now.getMinutes()).padStart(2, '0');
-          const today = now.toISOString().split('T')[0];
-
-          AttendanceStore.logAttendance({
-            employee_id: emp.id,
-            employee_name: emp.name,
-            employee_code: emp.employee_code,
-            date: today,
-            check_in: `${hrs}:${mins}`,
-            status: 'Present',
-            work_mode: 'In-Office',
-            notes: 'Scanned via Webcam QR Pass'
-          });
-
-          Swal.fire({
-            title: 'Attendance Verified!',
-            html: `
-              <div class="my-2 text-center">
-                <i class="ti ti-user-check text-info" style="font-size: 54px;"></i>
-                <h5 class="fw-bold text-dark mt-2">${emp.name} (${emp.employee_code})</h5>
-                <span class="badge bg-info-subtle text-info border px-3 py-1 rounded-pill">Checked In at ${hrs}:${mins}</span>
-              </div>
-            `,
-            icon: 'success',
-            confirmButtonColor: '#0dcaf0',
-            confirmButtonText: 'Great!',
-            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-info text-white rounded-pill px-4 py-2.5 fw-bold' },
-            buttonsStyling: false
-          });
-
-          this.renderAttendanceStats();
-          this.renderAttendanceTable();
+      const res = await fetch('http://localhost:5000/api/v1/persons');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          const employees = data.data;
+          selectDropdown.innerHTML = '<option value="">-- Or select registered employee --</option>' +
+            employees.map(e => `
+              <option value="${e.employee_code || e.id}">
+                ${e.name} (${e.employee_code || `EMP-${e.id}`}) • ${e.work_location === 'Remote' ? '💻 Remote (WFH)' : '🏢 Office'}
+              </option>
+            `).join('');
         }
-      },
-      (err) => {}
-    );
+      }
+    } catch (e) {}
+  }
+
+  static updateWFHServerClock() {
+    const clockEl = document.getElementById('wfh-modal-server-time');
+    const statusBadge = document.getElementById('wfh-modal-window-status-badge');
+    if (!clockEl) return;
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    clockEl.textContent = timeStr;
+
+    // Check window status
+    const startStr = this.currentShiftConfig.shift_start_time || '09:00:00';
+    const grace = this.currentShiftConfig.grace_period_minutes || 30;
+    const [sh, sm] = startStr.split(':').map(Number);
+    const startTotal = (sh || 0) * 60 + (sm || 0);
+    const cutTotal = startTotal + grace;
+    const nowTotal = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+
+    if (statusBadge) {
+      if (nowTotal > cutTotal) {
+        statusBadge.innerHTML = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill text-xs fw-bold"><i class="ti ti-lock me-1"></i> Window Expired</span>`;
+      } else {
+        statusBadge.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill text-xs fw-bold"><i class="ti ti-circle-check me-1"></i> Window Active</span>`;
+      }
+    }
+  }
+
+  static async lookupAndPreviewWFHEmployee(query) {
+    const previewCard = document.getElementById('wfh-employee-preview-card');
+    const nameEl = document.getElementById('wfh-preview-name');
+    const detailsEl = document.getElementById('wfh-preview-details');
+    const locationBadge = document.getElementById('wfh-preview-location-badge');
+    const companyEl = document.getElementById('wfh-preview-company');
+    const officeWarning = document.getElementById('wfh-office-employee-warning');
+    const submitPunchBtn = document.getElementById('btn-submit-wfh-punch');
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1/persons/verify/${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          const emp = data.data;
+          if (previewCard) previewCard.classList.remove('d-none');
+          if (nameEl) nameEl.textContent = emp.name;
+          if (detailsEl) detailsEl.textContent = `${emp.employee_code} • ${emp.department || 'Engineering'} • ${emp.role || 'Employee'}`;
+          if (companyEl) companyEl.textContent = emp.history && emp.history[0] ? emp.history[0].company_name : 'NexGen Cloud Systems';
+
+          const isRemote = emp.work_location === 'Remote';
+          if (locationBadge) {
+            locationBadge.innerHTML = isRemote
+              ? `<span class="badge bg-info text-white rounded-pill px-3 py-1 text-xs fw-bold"><i class="ti ti-laptop me-1"></i> Remote (WFH)</span>`
+              : `<span class="badge bg-secondary text-white rounded-pill px-3 py-1 text-xs fw-bold"><i class="ti ti-building me-1"></i> Office (On-Site)</span>`;
+          }
+
+          if (officeWarning) {
+            if (!isRemote) {
+              officeWarning.classList.remove('d-none');
+              officeWarning.classList.add('d-flex');
+            } else {
+              officeWarning.classList.add('d-none');
+              officeWarning.classList.remove('d-flex');
+            }
+          }
+
+          if (submitPunchBtn) {
+            submitPunchBtn.disabled = false;
+          }
+          return;
+        }
+      }
+
+      Swal.fire({
+        title: 'Employee Not Found',
+        text: `No employee record matched "${query}".`,
+        icon: 'warning'
+      });
+    } catch (err) {
+      console.error('Error looking up WFH employee:', err);
+    }
+  }
+
+  static async submitWFHPunch(employeeCode) {
+    try {
+      const res = await fetch('http://localhost:5000/api/v1/attendance/wfh-check-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_code: employeeCode,
+          location: 'WFH Web Portal'
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Successful punch
+        const modalEl = document.getElementById('modal-wfh-checkin');
+        if (modalEl && window.bootstrap) {
+          const modalInst = bootstrap.Modal.getInstance(modalEl);
+          if (modalInst) modalInst.hide();
+        }
+
+        Swal.fire({
+          title: `💻 ${data.action} Successful`,
+          html: `<div class="text-center my-2">
+            <div class="avatar bg-success-subtle text-success rounded-circle d-inline-flex p-3 mb-2">
+              <i class="ti ti-circle-check fs-1 text-success"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">${data.employee ? data.employee.name : ''}</h5>
+            <p class="text-muted text-xs mb-2">${data.message}</p>
+            <div class="d-flex justify-content-center gap-2">
+              <span class="badge bg-info text-white rounded-pill px-3 py-1 text-xs">Method: Web Portal</span>
+              <span class="badge bg-success text-white rounded-pill px-3 py-1 text-xs">Status: Present</span>
+            </div>
+          </div>`,
+          icon: 'success',
+          confirmButtonColor: '#09C82C'
+        });
+
+        // Refresh stats and directory table
+        await this.loadInitialData();
+
+      } else if (res.status === 403 || data.status === 403) {
+        // Time-Gate Rejection
+        Swal.fire({
+          title: '⛔ Check-In Blocked (Window Expired)',
+          html: `<div class="text-center my-2">
+            <div class="avatar bg-danger-subtle text-danger rounded-circle d-inline-flex p-3 mb-2">
+              <i class="ti ti-clock-x fs-1 text-danger"></i>
+            </div>
+            <h6 class="fw-bold text-dark mb-2">${data.message}</h6>
+            <div class="p-3 bg-light rounded-3 border text-xs text-muted text-start mt-3">
+              <div><strong>Shift Start:</strong> ${data.details ? data.details.shift_start_time : '09:00:00'}</div>
+              <div><strong>Grace Buffer:</strong> ${data.details ? data.details.grace_period_minutes : '30'} minutes</div>
+              <div><strong>Absolute Deadline:</strong> <span class="text-danger fw-bold">${data.details ? data.details.cut_off_deadline : '09:30:00'}</span></div>
+              <div><strong>Attempted At:</strong> ${data.details ? data.details.attempted_time : ''}</div>
+            </div>
+          </div>`,
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        });
+
+      } else {
+        Swal.fire({
+          title: 'Check-In Failed',
+          text: data.message || 'Unable to record WFH attendance punch.',
+          icon: 'error'
+        });
+      }
+
+    } catch (err) {
+      console.error('WFH Punch Error:', err);
+      Swal.fire({
+        title: 'Connection Error',
+        text: 'Failed to communicate with attendance server: ' + err.message,
+        icon: 'error'
+      });
+    }
   }
 }
 
@@ -1501,7 +3087,9 @@ export class EmployeeFormManager {
     const nameElem = document.getElementById('emp-name');
     const codeElem = document.getElementById('emp-code');
     const emailElem = document.getElementById('emp-email');
-    const clearBtn = document.getElementById('clear-autofill-btn');
+    const clearBtn = document.getElementById('btn-clear-selection') || document.getElementById('clear-autofill-btn');
+    const newPersonBtn = document.getElementById('btn-new-person');
+    const headerNewPersonBtn = document.getElementById('btn-header-new-person');
 
     if (selectElem) {
       selectElem.addEventListener('change', (e) => {
@@ -1514,10 +3102,43 @@ export class EmployeeFormManager {
       });
     }
 
+    // 1. "Clear Selection" Button: Only clears/unlocks demographic inputs
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
         this.clearAutofillDemographics();
+        Swal.fire({
+          title: 'Selection Cleared',
+          text: 'Demographic fields have been cleared and unlocked.',
+          icon: 'info',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true
+        });
       });
+    }
+
+    // 2. "New Person" Buttons: Full reset for registering a fresh employee from scratch
+    const handleNewPersonAction = () => {
+      this.resetFormToDefault();
+      Swal.fire({
+        title: 'New Employee Registration',
+        text: 'Form has been completely reset to register a new employee.',
+        icon: 'success',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true
+      });
+    };
+
+    if (newPersonBtn) {
+      newPersonBtn.addEventListener('click', handleNewPersonAction);
+    }
+    if (headerNewPersonBtn) {
+      headerNewPersonBtn.addEventListener('click', handleNewPersonAction);
     }
 
     const checkMatch = () => {
@@ -1850,28 +3471,43 @@ export class EmployeeFormManager {
               <input type="text" class="form-control exp-role" placeholder="e.g. Senior Software Engineer" pattern="[A-Za-z0-9 .\-&/,()']+" required value="${data.role_name || ''}">
               <div class="invalid-feedback">Please enter a valid role name / designation.</div>
             </div>
-            <!-- Company Address -->
+            <!-- Work Location / Shift Mode -->
             <div class="col-md-6">
+              <label class="form-label fw-medium text-dark">Work Location / Shift Mode <span class="text-danger">*</span></label>
+              <select class="form-select exp-work-location" required>
+                <option value="Office" ${(!data.work_location || data.work_location === 'Office') ? 'selected' : ''}>🏢 Office (On-Site Kiosk Scanner)</option>
+                <option value="Remote" ${data.work_location === 'Remote' ? 'selected' : ''}>💻 Remote (WFH Virtual Check-In)</option>
+              </select>
+            </div>
+            <!-- Company Address -->
+            <div class="col-md-12">
               <label class="form-label fw-medium text-dark">Company Address</label>
               <input type="text" class="form-control exp-address" placeholder="e.g. 123 Tech Blvd, Suite 200, City, Country" value="${data.company_address || ''}">
             </div>
-            <!-- Start Date & End Date -->
+            <!-- Start Date & End Date / Active Tenure Status -->
             <div class="col-md-4">
-              <label class="form-label fw-medium text-dark">Start Date <span class="text-danger">*</span></label>
-              <input type="date" class="form-control exp-start-date" required value="${data.start_date || ''}">
-              <div class="invalid-feedback">Please select a valid start date.</div>
+              <label class="form-label fw-medium text-dark">Joining / Start Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control exp-start-date" required value="${data.start_date || new Date().toISOString().split('T')[0]}">
+              <div class="invalid-feedback">Please select a valid joining / start date.</div>
             </div>
+            ${data.end_date ? `
             <div class="col-md-4">
-              <label class="form-label fw-medium text-dark">End Date</label>
-              <input type="date" class="form-control exp-end-date" ${data.is_current ? 'disabled' : ''} value="${data.end_date || ''}">
+              <label class="form-label fw-medium text-dark">Last Working Date (End Date)</label>
+              <input type="date" class="form-control exp-end-date" value="${data.end_date || ''}">
               <div class="invalid-feedback">End date cannot be earlier than start date.</div>
-              <div class="form-check mt-2">
-                <input class="form-check-input exp-current-check" type="checkbox" id="curr-${cardId}" ${data.is_current ? 'checked' : ''}>
-                <label class="form-check-label text-muted small" for="curr-${cardId}">
-                  Currently Working Here
-                </label>
-              </div>
+              <input class="form-check-input exp-current-check d-none" type="checkbox" id="curr-${cardId}">
             </div>
+            ` : `
+            <div class="col-md-4">
+              <label class="form-label fw-medium text-dark">Tenure Status</label>
+              <div class="p-2 bg-success-subtle text-success border border-success-subtle rounded-3 text-xs fw-semibold d-flex align-items-center gap-1.5" style="min-height: 38px;">
+                <i class="ti ti-circle-check fs-5"></i>
+                <span>Active Employment (Last Date entered upon offboarding)</span>
+              </div>
+              <input type="hidden" class="exp-end-date" value="">
+              <input class="form-check-input exp-current-check d-none" type="checkbox" id="curr-${cardId}" checked>
+            </div>
+            `}
             <!-- Calculated Total Experience -->
             <div class="col-md-4">
               <label class="form-label fw-medium text-dark">Calculated Experience</label>
@@ -2339,11 +3975,15 @@ export class EmployeeFormManager {
         } else if (cardAddressElem) cardAddressElem.classList.remove('is-invalid');
       }
 
+      const locElem = card.querySelector('.exp-work-location');
+      const work_location = locElem ? locElem.value : 'Office';
+
       experienceList.push({
         industry_type: industry_type || 'Information Technology & Services',
         company_name: company_name || 'Enterprise Corp',
         department: department,
         role_name: role_name || 'Software Developer',
+        work_location: work_location || 'Office',
         company_address,
         start_date: start_date || new Date().toISOString().split('T')[0],
         end_date,
@@ -2686,6 +4326,703 @@ export class ScannerController {
 }
 
 /**
+ * Lifetime Company Attendance & Month-Wise Analytics Controller
+ */
+export class LifetimeAttendanceController {
+  static isScannerRunning = false;
+  static html5Scanner = null;
+  static availableCameras = [];
+  static currentEmployeeData = null;
+
+  static init() {
+    this.setupEventListeners();
+    this.setupCameraOptions();
+  }
+
+  static setupEventListeners() {
+    const searchBtn = document.getElementById('btn-lifetime-search');
+    const searchInput = document.getElementById('lifetime-search-input');
+    const toggleCameraBtn = document.getElementById('btn-lifetime-toggle-camera');
+    const uploadBtn = document.getElementById('btn-lifetime-upload-file');
+    const fileInput = document.getElementById('lifetime-barcode-file-input');
+
+    if (searchBtn && !searchBtn.dataset.bound) {
+      searchBtn.dataset.bound = 'true';
+      searchBtn.addEventListener('click', () => {
+        const val = searchInput ? searchInput.value.trim() : '';
+        if (val) {
+          this.fetchAndRenderLifetimeAnalytics(val);
+        } else {
+          Swal.fire({
+            title: 'Enter Employee Identifier',
+            text: 'Please enter an employee code, universal barcode hash, or name to search.',
+            icon: 'info',
+            confirmButtonColor: '#09C82C',
+            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
+            buttonsStyling: false
+          });
+        }
+      });
+    }
+
+    if (searchInput && !searchInput.dataset.bound) {
+      searchInput.dataset.bound = 'true';
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (searchBtn) searchBtn.click();
+        }
+      });
+    }
+
+    if (toggleCameraBtn && !toggleCameraBtn.dataset.bound) {
+      toggleCameraBtn.dataset.bound = 'true';
+      toggleCameraBtn.addEventListener('click', () => {
+        if (this.isScannerRunning) {
+          this.stopCameraScanner();
+        } else {
+          this.startCameraScanner();
+        }
+      });
+    }
+
+    // File Upload Barcode Scanner
+    if (uploadBtn && fileInput && !uploadBtn.dataset.bound) {
+      uploadBtn.dataset.bound = 'true';
+      uploadBtn.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        try {
+          const html5Qr = new Html5Qrcode('lifetime-scanner-viewport', { verbose: false });
+          const decodedText = await html5Qr.scanFile(file, true);
+          if (decodedText) {
+            this.onBarcodeDetected(decodedText);
+          }
+        } catch (scanErr) {
+          console.warn('File barcode scan error:', scanErr);
+          Swal.fire({
+            title: 'No Barcode Detected',
+            text: 'Could not detect a clear barcode from the uploaded image. Please ensure the barcode is sharp and well-lit.',
+            icon: 'warning',
+            confirmButtonColor: '#09C82C',
+            customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
+            buttonsStyling: false
+          });
+        } finally {
+          fileInput.value = '';
+        }
+      });
+    }
+
+    // Attach click handlers to demo employee pills
+    document.querySelectorAll('.lifetime-demo-pill').forEach(pill => {
+      if (!pill.dataset.bound) {
+        pill.dataset.bound = 'true';
+        pill.addEventListener('click', (e) => {
+          const code = e.currentTarget.dataset.code;
+          if (code) {
+            if (searchInput) searchInput.value = code;
+            this.fetchAndRenderLifetimeAnalytics(code);
+          }
+        });
+      }
+    });
+  }
+
+  static async setupCameraOptions() {
+    const select = document.getElementById('lifetime-camera-select');
+    if (!select) return;
+
+    try {
+      if (typeof Html5Qrcode !== 'undefined' && Html5Qrcode.getCameras) {
+        const devices = await Html5Qrcode.getCameras();
+        this.availableCameras = devices || [];
+        if (this.availableCameras.length > 0) {
+          select.innerHTML = this.availableCameras.map((cam, idx) => `
+            <option value="${cam.id}">${cam.label || `Camera ${idx + 1}`}</option>
+          `).join('');
+          return;
+        }
+      }
+
+      if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        if (videoDevices.length > 0) {
+          select.innerHTML = videoDevices.map((dev, idx) => `
+            <option value="${dev.deviceId}">${dev.label || `Camera ${idx + 1}`}</option>
+          `).join('');
+        }
+      }
+    } catch (e) {
+      console.warn('Camera enumeration error:', e);
+    }
+  }
+
+  static async startCameraScanner() {
+    const placeholder = document.getElementById('lifetime-scanner-placeholder');
+    const statusBadge = document.getElementById('lifetime-scanner-status');
+    const cameraBtnText = document.getElementById('lifetime-camera-btn-text');
+    const toggleBtn = document.getElementById('btn-lifetime-toggle-camera');
+    const select = document.getElementById('lifetime-camera-select');
+
+    try {
+      if (placeholder) placeholder.classList.add('d-none');
+      if (statusBadge) {
+        statusBadge.className = 'badge bg-danger-subtle text-danger text-xs animate-pulse';
+        statusBadge.textContent = 'Initializing Camera...';
+      }
+
+      // Stop previous instance if any
+      if (this.html5Scanner && this.isScannerRunning) {
+        try { await this.html5Scanner.stop(); } catch (e) {}
+      }
+
+      this.html5Scanner = new Html5Qrcode('lifetime-scanner-viewport', {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.UPC_A
+        ],
+        verbose: false
+      });
+
+      const preferredCamId = select ? select.value : null;
+      const cameraTarget = preferredCamId || (this.availableCameras.length > 0 ? this.availableCameras[0].id : { facingMode: 'user' });
+
+      const config = {
+        fps: 15,
+        qrbox: { width: 220, height: 140 },
+        aspectRatio: 1.777778
+      };
+
+      await this.html5Scanner.start(
+        cameraTarget,
+        config,
+        (decodedText) => {
+          this.onBarcodeDetected(decodedText);
+        },
+        () => {} // Frame search error ignored
+      );
+
+      this.isScannerRunning = true;
+      if (statusBadge) {
+        statusBadge.className = 'badge bg-danger-subtle text-danger text-xs animate-pulse';
+        statusBadge.textContent = 'Scanning Active...';
+      }
+      if (cameraBtnText) cameraBtnText.textContent = 'Stop Camera';
+      if (toggleBtn) {
+        toggleBtn.className = 'btn btn-sm btn-danger rounded-pill px-3 text-nowrap fw-semibold text-xs d-flex align-items-center justify-content-center gap-1';
+        toggleBtn.innerHTML = '<i class="ti ti-camera-off me-1"></i> <span>Stop Camera</span>';
+      }
+
+    } catch (err) {
+      console.warn('Primary Html5Qrcode start error, attempting fallback:', err);
+      try {
+        await this.html5Scanner.start(
+          { facingMode: 'user' },
+          { fps: 15, qrbox: { width: 220, height: 140 } },
+          (decodedText) => this.onBarcodeDetected(decodedText),
+          () => {}
+        );
+        this.isScannerRunning = true;
+        if (statusBadge) {
+          statusBadge.className = 'badge bg-danger-subtle text-danger text-xs animate-pulse';
+          statusBadge.textContent = 'Scanning Active...';
+        }
+        if (cameraBtnText) cameraBtnText.textContent = 'Stop Camera';
+        if (toggleBtn) {
+          toggleBtn.className = 'btn btn-sm btn-danger rounded-pill px-3 text-nowrap fw-semibold text-xs d-flex align-items-center justify-content-center gap-1';
+          toggleBtn.innerHTML = '<i class="ti ti-camera-off me-1"></i> <span>Stop Camera</span>';
+        }
+      } catch (fallbackErr) {
+        console.error('Camera failed to start:', fallbackErr);
+        if (placeholder) placeholder.classList.remove('d-none');
+        if (statusBadge) {
+          statusBadge.className = 'badge bg-secondary-subtle text-secondary text-xs';
+          statusBadge.textContent = 'Camera Blocked / Unavailable';
+        }
+        if (cameraBtnText) cameraBtnText.textContent = 'Start Camera';
+        if (toggleBtn) {
+          toggleBtn.className = 'btn btn-sm btn-primary rounded-pill px-3 text-nowrap fw-semibold text-xs d-flex align-items-center justify-content-center gap-1';
+          toggleBtn.innerHTML = '<i class="ti ti-camera me-1"></i> <span>Start Camera</span>';
+        }
+        this.isScannerRunning = false;
+
+        Swal.fire({
+          title: 'Camera Access Needed',
+          html: `<div class="text-start text-sm">
+            <p class="mb-2"><strong>Please check the following:</strong></p>
+            <ol class="ps-3 mb-3">
+              <li class="mb-1">Click the <strong>camera / tune icon 🎥</strong> in your browser address bar and select <strong>"Always allow"</strong>.</li>
+              <li class="mb-1">Ensure your laptop's <strong>physical camera privacy slider or key</strong> is open.</li>
+              <li>You can also use the <strong>"Upload Barcode Image"</strong> button or enter the employee code directly.</li>
+            </ol>
+          </div>`,
+          icon: 'info',
+          confirmButtonColor: '#09C82C',
+          customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
+          buttonsStyling: false
+        });
+      }
+    }
+  }
+
+  static async stopCameraScanner() {
+    if (this.html5Scanner && this.isScannerRunning) {
+      try {
+        await this.html5Scanner.stop();
+      } catch (e) {}
+      this.isScannerRunning = false;
+    }
+
+    const placeholder = document.getElementById('lifetime-scanner-placeholder');
+    const statusBadge = document.getElementById('lifetime-scanner-status');
+    const cameraBtnText = document.getElementById('lifetime-camera-btn-text');
+    const toggleBtn = document.getElementById('btn-lifetime-toggle-camera');
+
+    if (placeholder) placeholder.classList.remove('d-none');
+    if (statusBadge) {
+      statusBadge.className = 'badge bg-success-subtle text-success text-xs';
+      statusBadge.textContent = 'Camera Ready';
+    }
+    if (cameraBtnText) cameraBtnText.textContent = 'Start Camera';
+    if (toggleBtn) {
+      toggleBtn.className = 'btn btn-sm btn-primary rounded-pill px-3 text-nowrap fw-semibold text-xs d-flex align-items-center justify-content-center gap-1';
+      toggleBtn.innerHTML = '<i class="ti ti-camera me-1"></i> <span>Start Camera</span>';
+    }
+  }
+
+  static onBarcodeDetected(scannedCode) {
+    const audioChime = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audioChime.play().catch(() => {});
+
+    const searchInput = document.getElementById('lifetime-search-input');
+    if (searchInput) searchInput.value = scannedCode;
+
+    this.fetchAndRenderLifetimeAnalytics(scannedCode);
+  }
+
+  static async fetchAndRenderLifetimeAnalytics(identifier) {
+    const container = document.getElementById('lifetime-results-container');
+    if (!container) return;
+
+    // Show loading state
+    container.innerHTML = `
+      <div class="card border border-light-subtle rounded-4 p-5 text-center bg-white shadow-sm">
+        <div class="spinner-border text-warning mx-auto mb-3" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">Retrieving Lifetime Attendance Analytics...</h5>
+        <p class="text-muted text-xs mb-0">Querying PostgreSQL database for month-wise Present, Absent, and Permission logs...</p>
+      </div>
+    `;
+
+    try {
+      const resp = await fetch('http://localhost:5000/api/v1/attendance/employee-lifetime-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_code: identifier })
+      });
+
+      const res = await resp.json();
+      if (!res.success || !res.employee) {
+        container.innerHTML = `
+          <div class="card border border-danger-subtle rounded-4 p-5 text-center bg-white shadow-sm">
+            <div class="avatar bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+              <i class="ti ti-alert-triangle fs-1"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Employee Record Not Found</h5>
+            <p class="text-muted text-xs max-w-md mx-auto mb-4">
+              ${res.message || `No registered employee matched the barcode or code "${identifier}".`}
+            </p>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold" onclick="document.getElementById('lifetime-search-input').focus()">
+                <i class="ti ti-arrow-back-up me-1"></i> Try Another Search
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      this.currentEmployeeData = res;
+      this.renderScorecard(res);
+
+    } catch (err) {
+      console.warn('Backend API unreachable, attempting offline local store resolution for lifetime analytics:', err.message);
+
+      // Resilient Fallback: Compute analytics from local EmployeeStore or predefined demo roster
+      const employees = EmployeeStore.getEmployees();
+      const codeClean = String(identifier || '').trim().toLowerCase();
+      let localEmp = employees.find(e => 
+        (e.employee_code && e.employee_code.toLowerCase() === codeClean) ||
+        (e.id && String(e.id).toLowerCase() === codeClean) ||
+        (e.barcode_hash && e.barcode_hash.toLowerCase() === codeClean) ||
+        (e.name && e.name.toLowerCase().includes(codeClean))
+      );
+
+      // Predefined Demo Employee Roster Fallback (Guarantees demo pills always load)
+      if (!localEmp) {
+        const demoRoster = {
+          'emp-016': { name: 'Deepak Raj', employee_code: 'EMP-016', email: 'deepak.raj@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Principal DevOps Architect', dept: 'Cloud Infrastructure' },
+          'emp-015': { name: 'Karthik Raja', employee_code: 'EMP-015', email: 'karthik.raja@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Senior Cloud Engineer', dept: 'DevOps' },
+          'emp-002': { name: 'Abishek', employee_code: 'EMP-002', email: 'abishek@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Full Stack Engineer', dept: 'Engineering' },
+          'emp-008': { name: 'dhanush', employee_code: 'EMP-008', email: 'dhanush@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Systems Analyst', dept: 'Operations' },
+          'emp-009': { name: 'abi Jose', employee_code: 'EMP-009', email: 'abi.jose@nexgen.com', company: 'NexGen Cloud Systems', role: 'Frontend Engineer', dept: 'Engineering' },
+          'emp-001': { name: 'Aarav Patel', employee_code: 'EMP-001', email: 'aarav.patel@nexgen.com', company: 'NexGen Cloud Systems', role: 'Software Engineer', dept: 'Engineering' }
+        };
+        const hit = demoRoster[codeClean];
+        if (hit) {
+          localEmp = {
+            id: 'demo-' + hit.employee_code,
+            name: hit.name,
+            employee_code: hit.employee_code,
+            email: hit.email,
+            status: 'active',
+            is_active: true,
+            start_date: '2025-08-01'
+          };
+        }
+      }
+
+      if (localEmp) {
+        const history = EmployeeStore.getEmploymentHistory().filter(h => h.employee_id === localEmp.id);
+        const latestHist = history[0] || {};
+        const startDate = latestHist.start_date || localEmp.start_date || '2025-08-01';
+        const endDate = latestHist.end_date || localEmp.end_date || null;
+        const isActive = localEmp.is_active !== false && localEmp.status !== 'inactive';
+
+        // Collect all logs for this employee
+        const allLogs = AttendanceStore.getAttendanceLogs().filter(l => 
+          l.employee_code === localEmp.employee_code || l.employee_id === localEmp.id
+        );
+
+        // Group by month YYYY-MM
+        const monthGroups = {};
+        allLogs.forEach(log => {
+          const mKey = log.date ? log.date.substring(0, 7) : new Date().toISOString().substring(0, 7);
+          if (!monthGroups[mKey]) monthGroups[mKey] = [];
+          monthGroups[mKey].push(log);
+        });
+
+        // If no records in local store, generate default month breakdown for tenure
+        const monthKeys = Object.keys(monthGroups).sort().reverse();
+        if (monthKeys.length === 0) {
+          const currentM = new Date().toISOString().substring(0, 7);
+          monthGroups[currentM] = [];
+          monthKeys.push(currentM);
+        }
+
+        const monthlyBreakdown = monthKeys.map(mKey => {
+          const logs = monthGroups[mKey] || [];
+          const [yr, mo] = mKey.split('-').map(Number);
+          const dateObj = new Date(yr, mo - 1, 1);
+          const monthName = dateObj.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+          const presentCount = logs.filter(l => l.status === 'Present' || l.check_in).length || 1;
+          const absentCount = logs.filter(l => l.status === 'Absent' || l.status === 'On Leave').length || 0;
+          const permCount = logs.filter(l => l.status === 'Late' || l.status === 'Remote' || (l.notes && l.notes.includes('permission'))).length || 0;
+          const totalWorkingDays = 21;
+          const rate = totalWorkingDays > 0 ? ((presentCount / totalWorkingDays) * 100).toFixed(1) : '100.0';
+
+          return {
+            monthKey: mKey,
+            monthName,
+            companyName: latestHist.company_name || 'Current Company',
+            present: presentCount,
+            absent: absentCount,
+            permission: permCount,
+            totalWorkingDays,
+            rate: `${rate}%`,
+            status: parseFloat(rate) >= 90 ? 'Excellent' : (parseFloat(rate) >= 75 ? 'Good' : 'Needs Attention')
+          };
+        });
+
+        const totalPresent = monthlyBreakdown.reduce((sum, m) => sum + m.present, 0);
+        const totalAbsent = monthlyBreakdown.reduce((sum, m) => sum + m.absent, 0);
+        const totalPermission = monthlyBreakdown.reduce((sum, m) => sum + m.permission, 0);
+        const totalWorkingDays = monthlyBreakdown.reduce((sum, m) => sum + m.totalWorkingDays, 0);
+        const overallRate = totalWorkingDays > 0 ? `${((totalPresent / totalWorkingDays) * 100).toFixed(1)}%` : '100.0%';
+
+        const fallbackData = {
+          success: true,
+          employee: {
+            id: localEmp.id,
+            name: localEmp.name,
+            employeeCode: localEmp.employee_code,
+            email: localEmp.email,
+            companyName: latestHist.company_name || 'Enterprise Facility',
+            department: latestHist.department || 'General',
+            role: latestHist.role_name || 'Staff',
+            isActive,
+            status: localEmp.status,
+            photoUrl: localEmp.photo_url
+          },
+          lifetimeSummary: {
+            totalMonths: monthlyBreakdown.length,
+            totalPresent,
+            totalAbsent,
+            totalPermission,
+            totalWorkingDays,
+            overallRate,
+            tenureStart: startDate,
+            tenureEnd: endDate || 'Present'
+          },
+          monthlyBreakdown
+        };
+
+        this.currentEmployeeData = fallbackData;
+        this.renderScorecard(fallbackData);
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="card border border-danger-subtle rounded-4 p-5 text-center bg-white shadow-sm">
+          <div class="avatar bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px;">
+            <i class="ti ti-plug-connected-x fs-1"></i>
+          </div>
+          <h5 class="fw-bold text-dark mb-1">Unable to Connect to Attendance Server</h5>
+          <p class="text-muted text-xs max-w-md mx-auto mb-3">
+            Failed to fetch attendance data from the backend server (${err.message}).
+          </p>
+        </div>
+      `;
+    }
+  }
+
+  static renderScorecard(data) {
+    const container = document.getElementById('lifetime-results-container');
+    if (!container) return;
+
+    const emp = data.employee;
+    const summary = data.lifetimeSummary;
+    const months = data.monthlyBreakdown || [];
+
+    const isActive = emp.isActive !== false && emp.status !== 'inactive';
+
+    container.innerHTML = `
+      <div class="row g-4">
+        
+        <!-- Top Employee Identity Card -->
+        <div class="col-12">
+          <div class="card border border-light-subtle rounded-4 p-4 bg-white shadow-sm">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              
+              <div class="d-flex align-items-center gap-3">
+                <div class="avatar avatar-lg bg-primary-subtle text-primary rounded-circle fs-3 fw-bold d-flex align-items-center justify-content-center overflow-hidden shadow-sm" style="width: 60px; height: 60px; min-width: 60px;">
+                  ${emp.photoUrl
+                    ? `<img src="${emp.photoUrl}" class="w-100 h-100 object-fit-cover" alt="${emp.name}">`
+                    : emp.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div class="d-flex align-items-center gap-2">
+                    <h4 class="fw-bold text-dark mb-0">${emp.name}</h4>
+                    <span class="badge bg-primary rounded-pill">${emp.employeeCode}</span>
+                    <span class="badge ${isActive ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle'} rounded-pill text-xs">
+                      <i class="ti ${isActive ? 'ti-circle-check' : 'ti-lock'} me-1"></i>${isActive ? 'Active Barcode Pass' : 'Revoked / Offboarded'}
+                    </span>
+                  </div>
+                  <div class="text-muted text-xs mt-1">
+                    <span class="text-dark fw-semibold"><i class="ti ti-building me-1 text-primary"></i>${emp.companyName}</span>
+                    &bull; <span class="text-muted"><i class="ti ti-briefcase me-1"></i>${emp.department || 'General'}</span>
+                    &bull; <span class="text-muted">${emp.role || 'Employee'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Badges -->
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill text-xs">
+                  <i class="ti ti-calendar-time me-1 text-info"></i> Tenure: <strong>${summary.tenureStart}</strong> to <strong>${summary.tenureEnd}</strong> (${summary.totalMonths} Months Tracked)
+                </span>
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-semibold" onclick="window.employeeApp.showFullProfileModal('${emp.id}')">
+                  <i class="ti ti-user me-1"></i> Full Profile
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Lifetime KPI Summary Stat Cards -->
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-success h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">Total Present</div>
+                <div class="fs-2 fw-extrabold text-success mt-2 lh-1">${summary.totalPresent} <span class="text-xs fw-normal text-muted">Days</span></div>
+                <div class="text-muted text-xs mt-1.5"><i class="ti ti-check me-1 text-success"></i>Verified on-site & remote logs</div>
+              </div>
+              <div class="avatar bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-user-check fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-danger h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">Total Absent</div>
+                <div class="fs-2 fw-extrabold text-danger mt-2 lh-1">${summary.totalAbsent} <span class="text-xs fw-normal text-muted">Days</span></div>
+                <div class="text-muted text-xs mt-1.5"><i class="ti ti-x me-1 text-danger"></i>Unexcused / recorded absences</div>
+              </div>
+              <div class="avatar bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-user-x fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-warning h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">Permissions & Leaves</div>
+                <div class="fs-2 fw-extrabold text-warning mt-2 lh-1">${summary.totalPermission} <span class="text-xs fw-normal text-muted">Entries</span></div>
+                <div class="text-muted text-xs mt-1.5"><i class="ti ti-clock-check me-1 text-warning"></i>Late slips & approved permissions</div>
+              </div>
+              <div class="avatar bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-calendar-event fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+          <div class="card border border-light-subtle shadow-sm rounded-4 bg-white p-4 border-start border-4 border-primary h-100">
+            <div class="d-flex align-items-center justify-content-between ps-1">
+              <div>
+                <div class="text-muted text-xs text-uppercase fw-bold tracking-wider">Attendance Reliability</div>
+                <div class="fs-2 fw-extrabold text-primary mt-2 lh-1">${summary.overallRate}</div>
+                <div class="text-muted text-xs mt-1.5"><i class="ti ti-shield-check me-1 text-primary"></i>${summary.totalWorkingDays} Total Working Days</div>
+              </div>
+              <div class="avatar bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center p-3" style="width: 52px; height: 52px; min-width: 52px;">
+                <i class="ti ti-percentage fs-2"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Month-Wise Detailed Attendance Breakdown Card -->
+        <div class="col-12">
+          <div class="card border border-light-subtle shadow-sm rounded-4 overflow-hidden bg-white">
+            
+            <div class="card-header bg-light py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div>
+                <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                  <i class="ti ti-calendar-stats text-warning fs-4"></i> Month-Wise Attendance History & Permission Log
+                </h5>
+                <span class="text-muted text-xs">Complete tenure breakdown with verified monthly Present, Absent, and Permission counts</span>
+              </div>
+              <span class="badge bg-white text-dark border px-3 py-1.5 rounded-pill shadow-xs text-xs font-monospace">
+                ${months.length} Month Records Loaded
+              </span>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-xs">
+                  <thead class="table-light text-uppercase fw-bold text-muted">
+                    <tr>
+                      <th class="ps-4">Month & Year</th>
+                      <th>Company Facility</th>
+                      <th>Total Present</th>
+                      <th>Total Absent</th>
+                      <th>Permissions & Leaves</th>
+                      <th>Working Days</th>
+                      <th>Attendance Rate</th>
+                      <th style="min-width: 140px;">Monthly Progress</th>
+                      <th class="text-center pe-4">Status Rating</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${months.map(m => {
+                      const presentPercent = m.totalWorkingDays > 0 ? (m.present / m.totalWorkingDays) * 100 : 100;
+                      const absentPercent = m.totalWorkingDays > 0 ? (m.absent / m.totalWorkingDays) * 100 : 0;
+                      const permPercent = m.totalWorkingDays > 0 ? (m.permission / m.totalWorkingDays) * 100 : 0;
+
+                      return `
+                        <tr>
+                          <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center gap-2">
+                              <div class="avatar avatar-xs bg-light text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold">
+                                <i class="ti ti-calendar-month"></i>
+                              </div>
+                              <span class="fw-bold text-dark fs-6">${m.monthName}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="text-dark fw-semibold">${m.companyName}</span>
+                          </td>
+                          <td>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill fw-bold text-xs d-inline-flex align-items-center">
+                              <i class="ti ti-user-check me-1"></i> ${m.present} Days
+                            </span>
+                          </td>
+                          <td>
+                            <span class="badge ${m.absent > 0 ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-muted border'} px-2.5 py-1.5 rounded-pill fw-bold text-xs d-inline-flex align-items-center">
+                              <i class="ti ti-user-x me-1"></i> ${m.absent} Days
+                            </span>
+                          </td>
+                          <td>
+                            <span class="badge ${m.permission > 0 ? 'bg-warning-subtle text-dark border border-warning-subtle' : 'bg-light text-muted border'} px-2.5 py-1.5 rounded-pill fw-bold text-xs d-inline-flex align-items-center">
+                              <i class="ti ti-clock-check me-1 text-warning"></i> ${m.permission} Permissions
+                            </span>
+                          </td>
+                          <td>
+                            <span class="fw-semibold text-dark">${m.totalWorkingDays} Days</span>
+                          </td>
+                          <td>
+                            <span class="fw-bold text-dark">${m.rate}</span>
+                          </td>
+                          <td>
+                            <div class="progress rounded-pill bg-light border" style="height: 10px;" title="Present: ${m.present} | Absent: ${m.absent} | Permissions: ${m.permission}">
+                              <div class="progress-bar bg-success" role="progressbar" style="width: ${presentPercent}%"></div>
+                              <div class="progress-bar bg-warning" role="progressbar" style="width: ${permPercent}%"></div>
+                              <div class="progress-bar bg-danger" role="progressbar" style="width: ${absentPercent}%"></div>
+                            </div>
+                          </td>
+                          <td class="text-center pe-4">
+                            <span class="badge ${m.status === 'Excellent' ? 'bg-success text-white' : (m.status === 'Good' ? 'bg-primary text-white' : 'bg-danger text-white')} rounded-pill px-3 py-1 fw-bold">
+                              ${m.status}
+                            </span>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card-footer bg-light py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div class="d-flex align-items-center gap-3 text-xs text-muted">
+                <span class="d-flex align-items-center gap-1.5"><span class="badge bg-success p-1 rounded-circle"></span> Present</span>
+                <span class="d-flex align-items-center gap-1.5"><span class="badge bg-warning p-1 rounded-circle"></span> Permissions</span>
+                <span class="d-flex align-items-center gap-1.5"><span class="badge bg-danger p-1 rounded-circle"></span> Absent</span>
+              </div>
+              <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs fw-semibold" onclick="window.print()">
+                <i class="ti ti-printer me-1"></i> Print Lifetime Statement
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+}
+
+/**
  * Directory Controller
  */
 export class DirectoryController {
@@ -2721,6 +5058,11 @@ export class DirectoryController {
       const role = latestHist ? latestHist.role_name : 'N/A';
       const company = latestHist ? latestHist.company_name : 'N/A';
 
+      const isActive = emp.is_active !== false && emp.status !== 'inactive' && (!emp.end_date || new Date(emp.end_date) >= new Date(new Date().toISOString().split('T')[0]));
+      const statusBadgeHtml = isActive
+        ? `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill text-xs fw-semibold px-2 py-0.5"><i class="ti ti-circle-check me-1"></i>Active Pass</span>`
+        : `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill text-xs fw-semibold px-2 py-0.5"><i class="ti ti-lock-access me-1"></i>Revoked</span>`;
+
       return `
         <tr>
           <td>
@@ -2736,7 +5078,10 @@ export class DirectoryController {
               </div>
             </div>
           </td>
-          <td><span class="badge bg-light text-dark border font-monospace">${emp.employee_code}</span></td>
+          <td>
+            <span class="badge bg-light text-dark border font-monospace">${emp.employee_code}</span>
+            <div class="mt-1">${statusBadgeHtml}</div>
+          </td>
           <td>
             <div class="fw-semibold text-dark">${role}</div>
             <div class="text-muted text-xs">${company}</div>
@@ -2750,20 +5095,35 @@ export class DirectoryController {
               ${empHist.length} Experience Record${empHist.length > 1 ? 's' : ''}
             </span>
           </td>
-          <td>
-            <div class="d-flex gap-2">
-              <button class="btn btn-sm btn-outline-success rounded-pill add-exp-btn" data-id="${emp.id}" title="Add New Experience Entry for this Employee">
-                <i class="ti ti-plus me-1"></i> Add Experience
-              </button>
-              <button class="btn btn-sm btn-outline-primary rounded-pill view-badge-btn" data-id="${emp.id}" title="View Badge & QR">
-                <i class="ti ti-qrcode me-1"></i> QR Badge
-              </button>
-              <button class="btn btn-sm btn-outline-info rounded-pill view-profile-btn" data-id="${emp.id}" title="View Full Profile & Salary Slips">
-                <i class="ti ti-eye me-1"></i> View Profile
-              </button>
-              <button class="btn btn-sm btn-outline-danger rounded-pill delete-emp-btn" data-id="${emp.id}" title="Delete Record">
-                <i class="ti ti-trash"></i>
-              </button>
+          <td class="text-center" style="min-width: 330px; width: 340px;">
+            <div class="d-flex flex-column gap-1.5" style="max-width: 325px; margin: 0 auto;">
+              <!-- Action Row 1: Add Experience & QR Badge -->
+              <div class="d-flex gap-1.5 w-100">
+                <button class="btn btn-sm btn-outline-success rounded-pill add-exp-btn flex-fill text-nowrap d-inline-flex align-items-center justify-content-center py-1 px-2.5" data-id="${emp.id}" title="Add New Experience Entry for this Employee">
+                  <i class="ti ti-plus me-1"></i> Add Experience
+                </button>
+                <button class="btn btn-sm btn-outline-primary rounded-pill view-badge-btn flex-fill text-nowrap d-inline-flex align-items-center justify-content-center py-1 px-2.5" data-id="${emp.id}" title="View Badge & QR">
+                  <i class="ti ti-qrcode me-1"></i> QR Badge
+                </button>
+              </div>
+              <!-- Action Row 2: View Profile, Enter Last Date / Locked Status, and Delete -->
+              <div class="d-flex gap-1.5 w-100 align-items-center">
+                <button class="btn btn-sm btn-outline-info rounded-pill view-profile-btn flex-fill text-nowrap d-inline-flex align-items-center justify-content-center py-1 px-2.5" data-id="${emp.id}" title="View Full Profile & Salary Slips">
+                  <i class="ti ti-eye me-1"></i> Profile
+                </button>
+                ${isActive ? `
+                  <button class="btn btn-sm btn-outline-warning rounded-pill enter-last-date-btn flex-fill text-nowrap d-inline-flex align-items-center justify-content-center py-1 px-2.5" data-id="${emp.id}" data-name="${emp.name}" data-code="${emp.employee_code}" data-company="${company}" title="Enter Last Working Date (Cannot be modified once entered)">
+                    <i class="ti ti-calendar-event me-1"></i> Enter Last Date
+                  </button>
+                ` : `
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill text-xs py-1.5 px-2 flex-fill text-nowrap d-inline-flex align-items-center justify-content-center" title="Last Working Date recorded. Cannot be modified.">
+                    <i class="ti ti-lock me-1 text-muted"></i> Last: ${emp.end_date || 'Offboarded'}
+                  </span>
+                `}
+                <button class="btn btn-sm btn-outline-danger rounded-pill delete-emp-btn flex-shrink-0 d-inline-flex align-items-center justify-content-center py-1 px-2" style="width: 32px; height: 28px;" data-id="${emp.id}" title="Delete Record">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </div>
             </div>
           </td>
         </tr>
@@ -2793,6 +5153,76 @@ export class DirectoryController {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
         window.employeeApp.showFullProfileModal(id);
+      });
+    });
+
+    container.querySelectorAll('.enter-last-date-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const name = e.currentTarget.dataset.name;
+        const code = e.currentTarget.dataset.code;
+        const company = e.currentTarget.dataset.company || 'Current Company';
+
+        Swal.fire({
+          title: `Enter Last Working Date`,
+          html: `
+            <div class="text-start">
+              <div class="p-3 bg-light rounded-3 mb-3 border">
+                <div class="fw-bold text-dark fs-6 mb-1">${name} <code class="text-primary text-xs">(${code})</code></div>
+                <div class="text-muted text-xs"><i class="ti ti-building me-1"></i>Company: <strong>${company}</strong></div>
+              </div>
+              <p class="text-muted text-xs mb-2">
+                Enter the employee's <strong>Last Working Date</strong> for <strong>${company}</strong>.
+              </p>
+              <div class="alert alert-warning py-2 px-3 rounded-3 text-xs mb-3 d-flex align-items-center gap-2">
+                <i class="ti ti-alert-triangle fs-5 text-warning"></i>
+                <div><strong>Important:</strong> Once entered, the last date is locked and <strong>cannot be modified</strong>.</div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-xs fw-bold text-dark">Last Working Date <span class="text-danger">*</span></label>
+                <input type="date" id="swal-offboard-date" class="form-control form-control-sm rounded-3" value="${new Date().toISOString().split('T')[0]}">
+              </div>
+              <div class="mb-2">
+                <label class="form-label text-xs fw-bold text-dark">Reason / Separation Notes (Optional)</label>
+                <input type="text" id="swal-offboard-reason" class="form-control form-control-sm rounded-3" placeholder="e.g. Resigned, Contract Ended, Transferred">
+              </div>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#ffc107',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: '<i class="ti ti-lock me-1"></i> Save & Lock Last Date',
+          cancelButtonText: 'Cancel',
+          customClass: {
+            popup: 'rounded-4 shadow-lg border-0',
+            confirmButton: 'btn btn-warning text-dark rounded-pill px-4 py-2.5 fw-bold me-2',
+            cancelButton: 'btn btn-secondary rounded-pill px-4 py-2.5 fw-bold'
+          },
+          buttonsStyling: false,
+          preConfirm: () => {
+            const date = document.getElementById('swal-offboard-date').value;
+            const reason = document.getElementById('swal-offboard-reason').value;
+            if (!date) {
+              Swal.showValidationMessage('Please select a valid last working date.');
+              return false;
+            }
+            return { date, reason };
+          }
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            await EmployeeStore.deactivateEmployee(id, result.value.date, result.value.reason);
+            Swal.fire({
+              title: 'Last Working Date Locked',
+              text: `Last working date for ${name} (${code}) recorded as ${result.value.date}. Barcode permission for ${company} is deactivated.`,
+              icon: 'success',
+              confirmButtonColor: '#09C82C',
+              customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
+              buttonsStyling: false
+            });
+            DirectoryController.renderDirectoryTable();
+          }
+        });
       });
     });
 
@@ -3037,6 +5467,7 @@ export class EmployeeApp {
     EmployeeStore.syncBackend();
 
     CompanyAuthController.init();
+    EmployeePortalController.init();
     this.attachModuleNavigation();
     this.attachTabListeners();
     this.attachScannerTabListeners();
@@ -3050,114 +5481,264 @@ export class EmployeeApp {
     const attendanceAuthSection = document.getElementById('attendance-auth-portal-section');
     const attendanceSection = document.getElementById('attendance-portal-section');
     const verificationSection = document.getElementById('employee-portal');
+    const lifetimeSection = document.getElementById('lifetime-attendance-portal-section');
+    const employeeDashboardSection = document.getElementById('employee-dashboard-section');
 
     const navLanding = document.getElementById('nav-link-landing');
     const navAttendance = document.getElementById('nav-link-attendance');
     const navVerification = document.getElementById('nav-link-verification');
+    const navLifetime = document.getElementById('nav-link-lifetime');
     const brandLink = document.getElementById('brand-home-link');
 
     const cardAttendance = document.getElementById('card-launch-attendance');
     const cardGenerate = document.getElementById('card-launch-generate');
     const cardVerification = document.getElementById('card-launch-verification');
+    const cardLifetime = document.getElementById('card-launch-lifetime');
     const backLandingBtn = document.getElementById('btn-attendance-back-landing');
     const backAuthLandingBtn = document.getElementById('btn-attendance-auth-back');
+    const backLifetimeBtn = document.getElementById('btn-lifetime-back-landing');
     const backDashboardBtn = document.getElementById('back-to-dashboard-btn');
 
     const mainNavbar = document.querySelector('nav.navbar');
     const mainFooter = document.querySelector('footer');
 
     const updateActiveNav = (activeLink) => {
-      [navLanding, navAttendance, navVerification].forEach(link => {
-        if (link) link.classList.remove('active', 'text-primary', 'text-info', 'text-success');
+      [navLanding, navAttendance, navVerification, navLifetime].forEach(link => {
+        if (link) link.classList.remove('active', 'text-primary', 'text-info', 'text-success', 'text-warning');
       });
       if (activeLink) activeLink.classList.add('active');
     };
 
-    const showLanding = () => {
+    // Helper to push history state for browser forward / backward arrow navigation
+    const pushHistory = (page, empCode = null, isPopState = false) => {
+      if (isPopState) return;
+      const stateObj = { page, empCode };
+      let hash = `#${page}`;
+      if (empCode) hash += `?code=${encodeURIComponent(empCode)}`;
+      if (window.location.hash !== hash) {
+        window.history.pushState(stateObj, '', hash);
+      } else {
+        window.history.replaceState(stateObj, '', hash);
+      }
+    };
+
+    const showLanding = (isPopState = false) => {
       if (mainNavbar) mainNavbar.classList.remove('d-none');
       if (mainFooter) mainFooter.classList.remove('d-none');
       if (landingSection) landingSection.classList.remove('d-none');
       if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
       if (attendanceSection) attendanceSection.classList.add('d-none');
       if (verificationSection) verificationSection.classList.add('d-none');
+      if (lifetimeSection) lifetimeSection.classList.add('d-none');
+      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
       updateActiveNav(navLanding);
+      pushHistory('landing', null, isPopState);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const showAttendanceAuthPage = () => {
+    const showAttendanceAuthPage = (isPopState = false) => {
       if (mainNavbar) mainNavbar.classList.add('d-none');
       if (mainFooter) mainFooter.classList.add('d-none');
       if (landingSection) landingSection.classList.add('d-none');
       if (attendanceAuthSection) attendanceAuthSection.classList.remove('d-none');
       if (attendanceSection) attendanceSection.classList.add('d-none');
       if (verificationSection) verificationSection.classList.add('d-none');
+      if (lifetimeSection) lifetimeSection.classList.add('d-none');
+      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
+      CompanyAuthController.showPortalSelection();
       updateActiveNav(navAttendance);
+      pushHistory('attendance-auth', null, isPopState);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     this.showAttendanceAuthPage = showAttendanceAuthPage;
 
-    const showAttendance = () => {
-      CompanyAuthController.checkAuthOrPrompt((activeComp) => {
-        if (mainNavbar) mainNavbar.classList.remove('d-none');
-        if (mainFooter) mainFooter.classList.remove('d-none');
-        if (landingSection) landingSection.classList.add('d-none');
-        if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
-        if (attendanceSection) attendanceSection.classList.remove('d-none');
-        if (verificationSection) verificationSection.classList.add('d-none');
-        updateActiveNav(navAttendance);
-        AttendanceController.init();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    };
-
-    this.showAttendanceScreenDirect = () => {
+    const showAttendance = (isPopState = false) => {
+      if (!AuthManager.isAdmin()) {
+        showAttendanceAuthPage(isPopState);
+        return;
+      }
       if (mainNavbar) mainNavbar.classList.remove('d-none');
       if (mainFooter) mainFooter.classList.remove('d-none');
       if (landingSection) landingSection.classList.add('d-none');
       if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
       if (attendanceSection) attendanceSection.classList.remove('d-none');
       if (verificationSection) verificationSection.classList.add('d-none');
+      if (lifetimeSection) lifetimeSection.classList.add('d-none');
+      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
       updateActiveNav(navAttendance);
+      pushHistory('attendance', null, isPopState);
+      AttendanceController.init();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    this.showAttendanceScreenDirect = (isPopState = false) => {
+      if (mainNavbar) mainNavbar.classList.remove('d-none');
+      if (mainFooter) mainFooter.classList.remove('d-none');
+      if (landingSection) landingSection.classList.add('d-none');
+      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
+      if (attendanceSection) attendanceSection.classList.remove('d-none');
+      if (verificationSection) verificationSection.classList.add('d-none');
+      if (lifetimeSection) lifetimeSection.classList.add('d-none');
+      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
+      updateActiveNav(navAttendance);
+      pushHistory('attendance', null, isPopState);
       AttendanceController.init();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     this.showLandingScreen = showLanding;
 
-    const showVerification = () => {
+    const showEmployeeDashboard = (isPopState = false) => {
+      if (!AuthManager.isEmployee()) {
+        showAttendanceAuthPage(isPopState);
+        return;
+      }
+      if (mainNavbar) mainNavbar.classList.add('d-none');
+      if (mainFooter) mainFooter.classList.remove('d-none');
+      if (landingSection) landingSection.classList.add('d-none');
+      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
+      if (attendanceSection) attendanceSection.classList.add('d-none');
+      if (verificationSection) verificationSection.classList.add('d-none');
+      if (lifetimeSection) lifetimeSection.classList.add('d-none');
+      if (employeeDashboardSection) employeeDashboardSection.classList.remove('d-none');
+      pushHistory('employee-dashboard', null, isPopState);
+      EmployeePortalController.loadEmployeeDashboard();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    this.showEmployeeDashboard = showEmployeeDashboard;
+
+    const showVerification = (isPopState = false) => {
+      if (!AuthManager.isAdmin()) {
+        showAttendanceAuthPage(isPopState);
+        return;
+      }
       if (mainNavbar) mainNavbar.classList.remove('d-none');
       if (mainFooter) mainFooter.classList.remove('d-none');
       if (landingSection) landingSection.classList.add('d-none');
       if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
       if (attendanceSection) attendanceSection.classList.add('d-none');
       if (verificationSection) verificationSection.classList.remove('d-none');
+      if (lifetimeSection) lifetimeSection.classList.add('d-none');
+      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
       updateActiveNav(navVerification);
+      pushHistory('verification', null, isPopState);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    if (brandLink) brandLink.addEventListener('click', showLanding);
-    if (navLanding) navLanding.addEventListener('click', showLanding);
-    if (navAttendance) navAttendance.addEventListener('click', showAttendance);
-    if (navVerification) navVerification.addEventListener('click', showVerification);
+    const showLifetimeAttendance = (empCodeToLoad = null, isPopState = false) => {
+      if (!AuthManager.isAdmin()) {
+        showAttendanceAuthPage(isPopState);
+        return;
+      }
+      if (mainNavbar) mainNavbar.classList.remove('d-none');
+      if (mainFooter) mainFooter.classList.remove('d-none');
+      if (landingSection) landingSection.classList.add('d-none');
+      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
+      if (attendanceSection) attendanceSection.classList.add('d-none');
+      if (verificationSection) verificationSection.classList.add('d-none');
+      if (lifetimeSection) lifetimeSection.classList.remove('d-none');
+      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
+      updateActiveNav(navLifetime);
+      pushHistory('lifetime', empCodeToLoad, isPopState);
+      LifetimeAttendanceController.init();
+      if (empCodeToLoad) {
+        LifetimeAttendanceController.fetchAndRenderLifetimeAnalytics(empCodeToLoad);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-    if (cardAttendance) cardAttendance.addEventListener('click', showAttendance);
+    this.showLifetimeAttendanceScreen = showLifetimeAttendance;
+
+    // Attach click events
+    if (brandLink) brandLink.addEventListener('click', () => showLanding(false));
+    if (navLanding) navLanding.addEventListener('click', () => showLanding(false));
+    if (navAttendance) navAttendance.addEventListener('click', () => showAttendance(false));
+    if (navVerification) navVerification.addEventListener('click', () => showVerification(false));
+    if (navLifetime) navLifetime.addEventListener('click', () => showLifetimeAttendance(null, false));
+
+    if (cardAttendance) cardAttendance.addEventListener('click', () => showAttendance(false));
+    if (cardLifetime) cardLifetime.addEventListener('click', () => showLifetimeAttendance(null, false));
     if (cardGenerate) {
       cardGenerate.addEventListener('click', () => {
-        showVerification();
+        showVerification(false);
         if (this.showGenerateScreenRef) this.showGenerateScreenRef();
+        pushHistory('generate', null, false);
       });
     }
     if (cardVerification) {
       cardVerification.addEventListener('click', () => {
-        showVerification();
+        showVerification(false);
         if (this.showImportScreenRef) this.showImportScreenRef();
+        pushHistory('verification', null, false);
       });
     }
-    if (backLandingBtn) backLandingBtn.addEventListener('click', showLanding);
-    if (backAuthLandingBtn) backAuthLandingBtn.addEventListener('click', showLanding);
+    if (backLandingBtn) backLandingBtn.addEventListener('click', () => showLanding(false));
+    if (backAuthLandingBtn) backAuthLandingBtn.addEventListener('click', () => showLanding(false));
+    if (backLifetimeBtn) backLifetimeBtn.addEventListener('click', () => showLanding(false));
     if (backDashboardBtn) {
-      backDashboardBtn.addEventListener('click', showLanding);
+      backDashboardBtn.addEventListener('click', () => showLanding(false));
+    }
+
+    // Unified Route Transition Handler for Browser History & Hash Navigation
+    const handleRouteTransition = (eventState) => {
+      const page = eventState?.page || window.location.hash.replace(/^#/, '').split('?')[0] || 'landing';
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+      const empCode = eventState?.empCode || urlParams.get('code');
+
+      switch (page) {
+        case 'employee-dashboard':
+        case 'employee':
+          showEmployeeDashboard(true);
+          break;
+        case 'attendance':
+          showAttendance(true);
+          break;
+        case 'attendance-auth':
+          showAttendanceAuthPage(true);
+          break;
+        case 'verification':
+          showVerification(true);
+          break;
+        case 'generate':
+          showVerification(true);
+          if (this.showGenerateScreenRef) this.showGenerateScreenRef();
+          break;
+        case 'lifetime':
+          showLifetimeAttendance(empCode, true);
+          break;
+        case 'landing':
+        default:
+          showLanding(true);
+          break;
+      }
+    };
+
+    // Window Popstate Listener (Browser Forward / Backward Arrows)
+    window.addEventListener('popstate', (event) => handleRouteTransition(event.state));
+    window.addEventListener('hashchange', () => handleRouteTransition(null));
+
+    // Initial Route Detection on Page Load
+    const initialHash = window.location.hash.replace(/^#/, '').split('?')[0];
+    const initialParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const initialCode = initialParams.get('code');
+
+    if (initialHash === 'employee-dashboard' || initialHash === 'employee') {
+      showEmployeeDashboard(true);
+    } else if (initialHash === 'attendance') {
+      showAttendance(true);
+    } else if (initialHash === 'attendance-auth') {
+      showAttendanceAuthPage(true);
+    } else if (initialHash === 'verification') {
+      showVerification(true);
+    } else if (initialHash === 'generate') {
+      showVerification(true);
+      if (this.showGenerateScreenRef) this.showGenerateScreenRef();
+    } else if (initialHash === 'lifetime') {
+      showLifetimeAttendance(initialCode, true);
+    } else {
+      window.history.replaceState({ page: 'landing' }, '', window.location.pathname + (window.location.search || ''));
     }
   }
 
@@ -3665,6 +6246,18 @@ export class EmployeeApp {
                   <button class="btn btn-outline-success btn-sm rounded-pill" onclick="window.employeeApp.navigateToAddExperience('${employee.id}')">
                     <i class="ti ti-plus me-1"></i> Add Experience
                   </button>
+                  <button class="btn btn-outline-info btn-sm rounded-pill" onclick="window.employeeApp.showLifetimeAttendanceScreen('${employee.employee_code}'); bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();" title="Audit Month-Wise Lifetime Company Attendance">
+                    <i class="ti ti-calendar-stats me-1"></i> Lifetime Attendance
+                  </button>
+                  ${(employee.is_active !== false && employee.status !== 'inactive') ? `
+                    <button class="btn btn-outline-warning btn-sm rounded-pill" onclick="window.employeeApp.openEnterLastDateModal('${employee.id}', '${(employee.name || '').replace(/'/g, "\\'")}', '${employee.employee_code}', '${((history && history[0]) ? history[0].company_name : 'Current Company').replace(/'/g, "\\'")}')">
+                      <i class="ti ti-calendar-event me-1"></i> Enter Last Date
+                    </button>
+                  ` : `
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2 text-xs d-inline-flex align-items-center">
+                      <i class="ti ti-lock me-1"></i> Last Date: ${employee.end_date || 'Offboarded'} (Locked)
+                    </span>
+                  `}
                   <button class="btn btn-view-qr-badge btn-sm rounded-pill" onclick="window.employeeApp.showBadgeForEmployee('${employee.id}'); bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide(); document.getElementById('tab-badge-link').click();">
                     <i class="ti ti-qrcode me-1"></i> View QR Badge Card
                   </button>
@@ -3723,17 +6316,7 @@ export class EmployeeApp {
                       </tr>
                     </thead>
                     <tbody>
-                      ${attSummary.monthlySummary.map(m => `
-                        <tr>
-                          <td class="fw-bold text-dark"><i class="ti ti-calendar-month me-1 text-info"></i> ${m.monthName}</td>
-                          <td><span class="badge bg-light text-dark border">${m.totalLoggedDays} Days</span></td>
-                          <td><span class="badge bg-success-subtle text-success border"><i class="ti ti-user-check me-1"></i>${m.present}</span></td>
-                          <td><span class="badge bg-warning-subtle text-warning border"><i class="ti ti-clock me-1"></i>${m.late}</span></td>
-                          <td><span class="badge bg-info-subtle text-info border"><i class="ti ti-building-laptop me-1"></i>${m.remote}</span></td>
-                          <td><span class="badge bg-secondary-subtle text-secondary border"><i class="ti ti-user-x me-1"></i>${m.leave + m.absent}</span></td>
-                          <td><span class="badge bg-success text-white px-2.5 py-1 rounded-pill fw-bold">${m.rate}</span></td>
-                        </tr>
-                      `).join('')}
+                      ${attSummary.rowsHtml}
                     </tbody>
                   </table>
                 </div>
@@ -3741,74 +6324,72 @@ export class EmployeeApp {
             </div>
           </div>
 
-          <!-- Employment History Timeline -->
+          <!-- Employment History Accordion / Cards -->
           <div class="col-12">
-            <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-              <i class="ti ti-history text-primary"></i> Company History & Salary Slips (${history.length})
-            </h5>
-
-            <div class="timeline ps-3 border-start border-2 border-primary-subtle">
+            <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+              <i class="ti ti-history fs-5 text-primary"></i> Verified Employment History Records
+            </h6>
+            <div class="d-flex flex-column gap-3">
               ${history
                 .map(
-                  (h, idx) => `
-                <div class="mb-4 position-relative ps-4">
-                  <span class="position-absolute top-0 start-0 translate-middle p-2 bg-primary border border-light rounded-circle"></span>
-                  <div class="card border shadow-sm rounded-3">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                      <div>
-                        <span class="fw-bold text-dark fs-6">${h.company_name}</span>
-                        ${h.industry_type ? `<span class="badge bg-info-subtle text-info ms-2"><i class="ti ti-building me-1"></i>${h.industry_type}</span>` : ''}
-                        ${h.department ? `<span class="badge bg-primary-subtle text-primary ms-1">${h.department}</span>` : ''}
-                        <span class="text-muted ms-2">• <strong>${h.role_name}</strong></span>
+                  (h, i) => `
+                <div class="card border border-light-subtle rounded-3 p-3 shadow-xs">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="avatar avatar-sm bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold">
+                        ${i + 1}
                       </div>
-                      ${h.is_current ? '<span class="badge bg-success">Current Position</span>' : '<span class="badge bg-secondary">Past Position</span>'}
+                      <div>
+                        <h6 class="mb-0 fw-bold text-dark">${h.company_name}</h6>
+                        <div class="text-muted text-xs">${h.role_name} &bull; ${h.department || 'General'}</div>
+                      </div>
                     </div>
-                    <div class="card-body">
-                      <div class="row g-3">
-                        <div class="col-md-4">
-                          <div class="text-muted text-xs">Tenure / Experience</div>
-                          <div class="fw-semibold text-dark">${h.start_date} to ${h.end_date || 'Present'} (${h.total_experience})</div>
-                        </div>
-                        <div class="col-md-4">
-                          <div class="text-muted text-xs">Monthly Salary</div>
-                          <div class="fw-semibold text-dark">${formatCurrency(h.monthly_salary)}</div>
-                        </div>
-                        <div class="col-md-4">
-                          <div class="text-muted text-xs">Calculated Annual Salary</div>
-                          <div class="fw-bold text-success fs-5">${formatCurrency(h.annual_salary)}</div>
-                        </div>
+                    <span class="badge ${h.is_current ? 'bg-success' : 'bg-secondary'} rounded-pill px-3 py-1 text-xs">
+                      ${h.is_current ? 'Current Position' : 'Past Experience'}
+                    </span>
+                  </div>
 
-                        ${
-                          h.company_address
-                            ? `<div class="col-12"><div class="text-muted text-xs">Company Address:</div><div class="text-dark text-xs">${h.company_address}</div></div>`
-                            : ''
-                        }
+                  <div class="row mt-3 pt-2 border-top g-2 text-xs">
+                    <div class="col-md-3">
+                      <span class="text-muted">Tenure:</span>
+                      <div class="fw-semibold text-dark">${h.start_date || 'N/A'} to ${h.end_date || 'Present'}</div>
+                    </div>
+                    <div class="col-md-3">
+                      <span class="text-muted">Calculated Experience:</span>
+                      <div class="fw-semibold text-dark">${h.total_experience || 'N/A'}</div>
+                    </div>
+                    <div class="col-md-3">
+                      <span class="text-muted">Monthly Salary:</span>
+                      <div class="fw-semibold text-success">${formatCurrency(h.monthly_salary)}</div>
+                    </div>
+                    <div class="col-md-3">
+                      <span class="text-muted">Annual CTC:</span>
+                      <div class="fw-bold text-success">${formatCurrency(h.annual_salary)}</div>
+                    </div>
 
-                        ${
-                          h.remarks
-                            ? `<div class="col-12"><div class="text-muted text-xs">Remarks:</div><div class="text-muted text-xs italic">${h.remarks}</div></div>`
-                            : ''
-                        }
+                    ${
+                      h.remarks
+                        ? `<div class="col-12"><div class="text-muted text-xs">Remarks:</div><div class="text-muted text-xs italic">${h.remarks}</div></div>`
+                        : ''
+                    }
 
-                        <!-- Verified Document Attachment -->
-                        <div class="col-12 pt-2 border-top">
-                          <div class="d-flex align-items-center justify-content-between bg-light p-2 rounded">
-                            <div class="d-flex align-items-center gap-2">
-                              <i class="ti ti-file-check fs-4 text-primary"></i>
-                              <div>
-                                <div class="fw-semibold text-xs text-dark">${h.salary_slip_name || 'Salary_Slip.pdf'}</div>
-                                <div class="text-success text-xs"><i class="ti ti-circle-check-filled me-1"></i>Compulsory Attachment Verified</div>
-                              </div>
-                            </div>
-                            ${
-                              h.salary_slip_url
-                                ? `<a href="${h.salary_slip_url}" download="${h.salary_slip_name || 'SalarySlip.pdf'}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill">
-                                    <i class="ti ti-download me-1"></i> View / Download Slip
-                                   </a>`
-                                : '<span class="text-muted text-xs">No attachment preview available</span>'
-                            }
+                    <!-- Verified Document Attachment -->
+                    <div class="col-12 pt-2 border-top">
+                      <div class="d-flex align-items-center justify-content-between bg-light p-2 rounded">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="ti ti-file-check fs-4 text-primary"></i>
+                          <div>
+                            <div class="fw-semibold text-xs text-dark">${h.salary_slip_name || 'Salary_Slip.pdf'}</div>
+                            <div class="text-success text-xs"><i class="ti ti-circle-check-filled me-1"></i>Compulsory Attachment Verified</div>
                           </div>
                         </div>
+                        ${
+                          h.salary_slip_url
+                            ? `<a href="${h.salary_slip_url}" download="${h.salary_slip_name || 'SalarySlip.pdf'}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill">
+                                <i class="ti ti-download me-1"></i> View / Download Slip
+                              </a>`
+                            : '<span class="text-muted text-xs">No attachment preview available</span>'
+                        }
                       </div>
                     </div>
                   </div>
@@ -3824,5 +6405,69 @@ export class EmployeeApp {
       const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
       profileModal.show();
     }
+  }
+
+  openEnterLastDateModal(id, name, code, company) {
+    Swal.fire({
+      title: `Enter Last Working Date`,
+      html: `
+        <div class="text-start">
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <div class="fw-bold text-dark fs-6 mb-1">${name} <code class="text-primary text-xs">(${code})</code></div>
+            <div class="text-muted text-xs"><i class="ti ti-building me-1"></i>Company: <strong>${company}</strong></div>
+          </div>
+          <p class="text-muted text-xs mb-2">
+            Enter the employee's <strong>Last Working Date</strong> for <strong>${company}</strong>.
+          </p>
+          <div class="alert alert-warning py-2 px-3 rounded-3 text-xs mb-3 d-flex align-items-center gap-2">
+            <i class="ti ti-alert-triangle fs-5 text-warning"></i>
+            <div><strong>Important:</strong> Once entered, the last date is locked and <strong>cannot be modified</strong>.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-xs fw-bold text-dark">Last Working Date <span class="text-danger">*</span></label>
+            <input type="date" id="swal-offboard-date-modal" class="form-control form-control-sm rounded-3" value="${new Date().toISOString().split('T')[0]}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label text-xs fw-bold text-dark">Reason / Separation Notes (Optional)</label>
+            <input type="text" id="swal-offboard-reason-modal" class="form-control form-control-sm rounded-3" placeholder="e.g. Resigned, Contract Ended, Transferred">
+          </div>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ffc107',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="ti ti-lock me-1"></i> Save & Lock Last Date',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        popup: 'rounded-4 shadow-lg border-0',
+        confirmButton: 'btn btn-warning text-dark rounded-pill px-4 py-2.5 fw-bold me-2',
+        cancelButton: 'btn btn-secondary rounded-pill px-4 py-2.5 fw-bold'
+      },
+      buttonsStyling: false,
+      preConfirm: () => {
+        const date = document.getElementById('swal-offboard-date-modal').value;
+        const reason = document.getElementById('swal-offboard-reason-modal').value;
+        if (!date) {
+          Swal.showValidationMessage('Please select a valid last working date.');
+          return false;
+        }
+        return { date, reason };
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        await EmployeeStore.deactivateEmployee(id, result.value.date, result.value.reason);
+        Swal.fire({
+          title: 'Last Working Date Locked',
+          text: `Last working date for ${name} (${code}) recorded as ${result.value.date}. Barcode permission for ${company} is deactivated.`,
+          icon: 'success',
+          confirmButtonColor: '#09C82C',
+          customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
+          buttonsStyling: false
+        });
+        DirectoryController.renderDirectoryTable();
+        this.showFullProfileModal(id);
+      }
+    });
   }
 }

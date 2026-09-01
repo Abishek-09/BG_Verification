@@ -35,6 +35,12 @@ async function main() {
     create: { name: 'Cloud Infrastructure & DevOps', status: 'active' }
   });
 
+  const hrDept = await prisma.department.upsert({
+    where: { name: 'Human Resources' },
+    update: {},
+    create: { name: 'Human Resources', status: 'active' }
+  });
+
   // 2. Seed Roles
   const leadDev = await prisma.roles.upsert({
     where: { name: 'Lead Frontend Developer' },
@@ -52,6 +58,12 @@ async function main() {
     where: { name: 'DevOps & Systems Architect' },
     update: {},
     create: { name: 'DevOps & Systems Architect', status: 'active' }
+  });
+
+  const hrRole = await prisma.roles.upsert({
+    where: { name: 'HR Specialist' },
+    update: {},
+    create: { name: 'HR Specialist', status: 'active' }
   });
 
   // 3. Seed Persons
@@ -137,9 +149,14 @@ async function main() {
     }
   });
 
-  // 6. Seed Person Details
-  await prisma.personDetails.create({
-    data: {
+  // 6. Seed Person Details (with biometricPin for hardware identity resolution)
+  // Use upsert on employeeCode to avoid duplicate seed errors on re-run
+  await prisma.personDetails.upsert({
+    where: { employeeCode: 'EMP-1001' },
+    update: {
+      biometricPin: '1001'
+    },
+    create: {
       personId: person1.id,
       mobile: '+91 98765 43210',
       companyName: 'Apex Global Solutions',
@@ -151,6 +168,7 @@ async function main() {
       personDeptId: pDept1.id,
       personRoleId: pRole1.id,
       employeeCode: 'EMP-1001',
+      biometricPin: '1001',
       companyAddress: '100 Tech Highway, Cyber City, Gurugram, India',
       personAddress: '742 Evergreen Terrace, Springfield, OR 97477',
       status: 'verified',
@@ -159,8 +177,12 @@ async function main() {
     }
   });
 
-  await prisma.personDetails.create({
-    data: {
+  await prisma.personDetails.upsert({
+    where: { employeeCode: 'EMP-1002' },
+    update: {
+      biometricPin: '1002'
+    },
+    create: {
       personId: person2.id,
       mobile: '+91 91234 56789',
       companyName: 'CloudScale Dynamics',
@@ -172,6 +194,7 @@ async function main() {
       personDeptId: pDept2.id,
       personRoleId: pRole2.id,
       employeeCode: 'EMP-1002',
+      biometricPin: '1002',
       companyAddress: '500 Enterprise Way, HITEC City, Hyderabad, India',
       personAddress: '100 Innovation Blvd, Tech City, CA 94016',
       status: 'verified',
@@ -180,7 +203,7 @@ async function main() {
     }
   });
 
-  console.log('✅ Database successfully seeded with PersonDetails records!');
+  console.log('✅ Database successfully seeded with PersonDetails records (biometricPin included)!');
 }
 
 main()

@@ -1,6 +1,6 @@
 // =====================================================================
-// Background Verification System - Prisma 7 Schema Definition
-// Tables: person, department, roles, person_department, person_roles, person_details
+// Background Verification System - Prisma Schema Definition
+// Tables: person, department, roles, person_department, person_roles, person_details, attendance
 // =====================================================================
 
 generator client {
@@ -9,6 +9,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Person {
@@ -20,6 +21,7 @@ model Person {
   personDepartments PersonDepartment[]
   personRoles       PersonRoles[]
   personDetails     PersonDetails[]
+  attendance        Attendance[]
 
   @@map("person")
 }
@@ -84,11 +86,13 @@ model PersonDetails {
   barcodeData      String?           @map("barcode_data") @db.Text
   monthlySalary    Decimal?          @map("monthly_salary") @db.Decimal(12, 2)
   totalExperience  String?           @map("total_experience") @db.VarChar(50)
-  startDate        DateTime?         @map("start_date") @db.Date
+  startDate        DateTime?         @default(now()) @map("start_date") @db.Date
   endDate          DateTime?         @map("end_date") @db.Date
+  isActive         Boolean           @default(true) @map("is_active")
   personDeptId     BigInt?           @map("person_dept_id")
   personRoleId     BigInt?           @map("person_role_id")
   employeeCode     String?           @map("employee_code") @db.VarChar(50)
+  biometricPin     String?           @map("biometric_pin") @db.VarChar(50)
   companyAddress   String?           @map("company_address") @db.Text
   personAddress    String?           @map("person_address") @db.Text
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
@@ -96,12 +100,75 @@ model PersonDetails {
   remarks          String?           @db.Text
   paymentSlip      String?           @map("payment_slip") @db.Text
   photoUrl         String?           @map("photo_url") @db.Text
+  workLocation     String            @default("Office") @map("work_location") @db.VarChar(50)
+  accessPin        String?           @default("1234") @map("access_pin") @db.VarChar(50)
+  passwordHash     String?           @map("password_hash") @db.Text
+  paidLeaveQuota   Int               @default(24) @map("paid_leave_quota")
+  paidLeaveTaken   Int               @default(4) @map("paid_leave_taken")
   person           Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
   personDepartment PersonDepartment? @relation(fields: [personDeptId], references: [id], onDelete: SetNull)
   personRole       PersonRoles?      @relation(fields: [personRoleId], references: [id], onDelete: SetNull)
 
   @@index([personId], map: "idx_person_details_person_id")
   @@index([employeeCode], map: "idx_person_details_emp_code")
+  @@index([barcodeData], map: "idx_person_details_barcode")
   @@index([status], map: "idx_person_details_status")
+  @@index([isActive], map: "idx_person_details_is_active")
   @@map("person_details")
 }
+
+model Attendance {
+  id               BigInt    @id @default(autoincrement())
+  personId         BigInt?   @map("person_id")
+  employeeCode     String    @map("employee_code") @db.VarChar(50)
+  employeeName     String    @map("employee_name") @db.VarChar(150)
+  department       String?   @db.VarChar(150)
+  punchTime        DateTime  @default(now()) @map("punch_time") @db.Timestamptz
+  punchDate        DateTime  @default(now()) @map("punch_date") @db.Date
+  checkInTime      DateTime? @map("check_in_time") @db.Timestamptz
+  checkOutTime     DateTime? @map("check_out_time") @db.Timestamptz
+  duration         String?   @db.VarChar(50)
+  verificationType String?   @default("Barcode Scanner") @map("verification_type") @db.VarChar(100)
+  location         String?   @default("Front Desk Kiosk") @db.VarChar(150)
+  deviceName       String?   @default("Camera Barcode Kiosk") @map("device_name") @db.VarChar(150)
+  terminalSn       String?   @map("terminal_sn") @db.VarChar(100)
+  status           String    @default("Present") @db.VarChar(50)
+  workMode         String    @default("On-Site Kiosk") @map("work_mode") @db.VarChar(100)
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  person           Person?   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, punchDate], name: "uq_attendance_person_date")
+  @@index([personId], map: "idx_attendance_person_id")
+  @@index([employeeCode], map: "idx_attendance_emp_code")
+  @@index([punchDate], map: "idx_attendance_punch_date")
+  @@map("attendance")
+}
+
+model CompanySettings {
+  id                 BigInt   @id @default(autoincrement())
+  companyName        String   @unique @map("company_name") @db.VarChar(150)
+  shiftStartTime     String   @default("09:00:00") @map("shift_start_time") @db.VarChar(10)
+  gracePeriodMinutes Int      @default(30) @map("grace_period_minutes")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("company_settings")
+}
+
+model CompanyAccount {
+  id           BigInt   @id @default(autoincrement())
+  companyName  String   @unique @map("company_name") @db.VarChar(150)
+  username     String   @unique @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.Text
+  country      String?  @default("India") @db.VarChar(100)
+  state        String?  @db.VarChar(100)
+  district     String?  @db.VarChar(100)
+  address      String?  @db.Text
+  role         String   @default("admin") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("company_accounts")
+}
+

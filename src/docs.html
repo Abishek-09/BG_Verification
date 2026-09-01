@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Employee Verification & Attendance System - Project Documentation & System Flow</title>
+  
+  <!-- Google Fonts & Tabler Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #09C82C;
+      --primary-dark: #079c23;
+      --primary-subtle: #e6f9ea;
+      --dark-color: #0f172a;
+      --slate-color: #334155;
+      --light-bg: #f8fafc;
+      --border-color: #e2e8f0;
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--light-bg);
+      color: var(--slate-color);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    /* Fixed Download Floating Bar */
+    .download-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: white;
+    }
+
+    .doc-container {
+      max-width: 960px;
+      margin: 80px auto 40px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      padding: 48px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--dark-color);
+      font-weight: 700;
+    }
+
+    .doc-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.25;
+      color: var(--dark-color);
+    }
+
+    .section-header {
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 8px;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Diagrams & Flow Cards */
+    .flow-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--primary-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .flow-step:last-child {
+      margin-bottom: 0;
+    }
+
+    .flow-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: white;
+      font-weight: 700;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Tables */
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .doc-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+    }
+
+    .doc-table td {
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      vertical-align: top;
+    }
+
+    code, pre {
+      font-family: var(--font-code);
+    }
+
+    .code-block {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 14px 0;
+    }
+
+    /* Print Specific Styling for 100% Crisp PDF Export */
+    @media print {
+      body {
+        background: #ffffff;
+        color: #000000;
+        font-size: 12px;
+      }
+
+      .download-bar {
+        display: none !important;
+      }
+
+      .doc-container {
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        max-width: 100%;
+      }
+
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+
+      .flow-card, .doc-table, pre {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 15mm 15mm 15mm 15mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Bar for Immediate PDF Download -->
+  <div class="download-bar">
+    <div class="d-flex align-items-center gap-2">
+      <i class="ti ti-file-certificate fs-4 text-success"></i>
+      <span class="fw-bold">Universal Employee Verification & Attendance System</span>
+      <span class="badge bg-secondary text-xs">v2.4 Production Specification</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/index.html" class="btn btn-sm btn-outline-light rounded-pill px-3 text-xs">
+        <i class="ti ti-arrow-left me-1"></i> Back to Main Portal
+      </a>
+      <button onclick="window.print()" class="btn btn-sm btn-success rounded-pill px-3 fw-bold text-xs shadow-sm">
+        <i class="ti ti-download me-1"></i> Download / Print PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="doc-container">
+
+    <!-- Document Cover / Header -->
+    <div class="text-center pb-4 mb-4 border-bottom">
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-success-subtle text-success rounded-pill text-xs fw-bold mb-3">
+        <i class="ti ti-shield-check"></i> OFFICIAL TECHNICAL SPECIFICATION & SYSTEM ARCHITECTURE
+      </div>
+      <h1 class="doc-title mb-2">Universal Employee Verification & Multi-Company Attendance System</h1>
+      <p class="text-muted text-sm max-w-2xl mx-auto mb-3">
+        A unified, dual-purpose enterprise solution combining cryptographic 1D barcode identity passes, real-time optical kiosk attendance, permission lifecycle tracking, and complete month-wise lifetime company attendance analytics.
+      </p>
+      <div class="d-flex flex-wrap justify-content-center gap-3 text-xs text-muted">
+        <span><strong>Author:</strong> Engineering Team</span> &bull;
+        <span><strong>Database:</strong> PostgreSQL (Prisma ORM)</span> &bull;
+        <span><strong>Architecture:</strong> Single-Page Application (SPA) + Express API</span> &bull;
+        <span><strong>Release Date:</strong> August 2026</span>
+      </div>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="flow-card bg-light border-0 mb-4 p-4">
+      <h5 class="fw-bold text-dark mb-3"><i class="ti ti-list-details text-primary me-2"></i>Table of Contents</h5>
+      <div class="row g-2 text-xs">
+        <div class="col-md-6">
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2"><a href="#section-1" class="text-decoration-none text-dark fw-semibold">1. Executive Overview & Core Problem Statement</a></li>
+            <li class="mb-2"><a href="#section-2" class="text-decoration-none text-dark fw-semibold">2. High-Level System Architecture & Flowchart</a></li>
+            <li class="mb-2"><a href="#section-3" class="text-decoration-none text-dark fw-semibold">3. Module 01: Universal Barcode Identity & Generation</a></li>
+            <li class="mb-2"><a href="#section-4" class="text-decoration-none text-dark fw-semibold">4. Module 02: Real-Time Optical Attendance Kiosk</a></li>
+          </ul>
+        </div>
+        <div class="col-md-6">
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2"><a href="#section-5" class="text-decoration-none text-dark fw-semibold">5. Module 03: Barcode Permission Lifecycle (Locking & Re-Activation)</a></li>
+            <li class="mb-2"><a href="#section-6" class="text-decoration-none text-dark fw-semibold">6. Module 04: Lifetime Company Attendance (Month-Wise Analytics)</a></li>
+            <li class="mb-2"><a href="#section-7" class="text-decoration-none text-dark fw-semibold">7. Relational Database Schema & Data Models</a></li>
+            <li class="mb-2"><a href="#section-8" class="text-decoration-none text-dark fw-semibold">8. REST API Specification & Endpoint Directory</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: EXECUTIVE OVERVIEW -->
+    <div id="section-1">
+      <div class="section-header">
+        <i class="ti ti-apps fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">1. Executive Overview & Core Problem Statement</h3>
+      </div>
+      <p>
+        Traditional workforce management systems suffer from disconnected silos: employee background verification data lives in static reports, while daily attendance is locked inside standalone biometric hardware. When an employee transitions between companies, their verified identity is lost, and their historical attendance reliability cannot be verified.
+      </p>
+      <p>
+        <strong>The Universal Employee Verification & Attendance System solves this by establishing a Universal Barcode Identity:</strong>
+      </p>
+      <ul>
+        <li><strong>Permanent Cryptographic Barcode Pass:</strong> Generated once per employee, encoding their unique system identifier.</li>
+        <li><strong>Company-Level Permission Management:</strong> A company grants active access when onboarding and revokes access upon entering a permanent, unmodifiable <em>Last Date</em>.</li>
+        <li><strong>Multi-Tenure Re-Activation:</strong> When an employee moves to their next company, the new company activates the <em>exact same universal barcode pass</em>, creating a unified cross-company career record.</li>
+        <li><strong>Lifetime Month-Wise Attendance Audits:</strong> Companies can scan the barcode pass to audit verified monthly counts for <strong>Total Present</strong>, <strong>Total Absent</strong>, and <strong>Permissions & Leaves</strong> across the entire tenure.</li>
+      </ul>
+    </div>
+
+    <!-- SECTION 2: SYSTEM ARCHITECTURE -->
+    <div id="section-2" class="page-break">
+      <div class="section-header">
+        <i class="ti ti-topology-star-3 fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">2. High-Level System Architecture & Flow</h3>
+      </div>
+      
+      <div class="flow-card">
+        <h6 class="fw-bold text-dark mb-3"><i class="ti ti-arrows-split text-primary me-2"></i>End-to-End Information & Event Flow</h6>
+        
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div>
+            <strong>Identity Generation & Verification Store:</strong> Admin registers employee demographics, salary history, and salary slip PDF. System creates records in PostgreSQL (<code>Person</code> &amp; <code>PersonDetails</code>) and renders a Code 128 / QR digital pass.
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div>
+            <strong>Company Attendance Kiosk (Daily Clock-In/Out):</strong> Employee presents their universal barcode to the camera kiosk. The optical scanner decodes the barcode, validates company permission, logs Check-In / Check-Out, triggers a 3-second visual cooldown, and broadcasts live scans via WebSocket to the live activity stream.
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div>
+            <strong>Lifecycle Offboarding & Permanent Lock:</strong> When an employee departs, the company enters their <em>Last Date</em>. Once submitted, the field is permanently locked, and the barcode is switched to inactive (403 Forbidden on attendance punch).
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <div>
+            <strong>Next Company Onboarding:</strong> The subsequent company looks up the existing barcode pass, inputs their new joining record (start date, role, department), and reactivates the same universal barcode for their company facility.
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-num">5</div>
+          <div>
+            <strong>Lifetime Attendance Analytics Audit:</strong> Any authorized company scans or searches the barcode to query PostgreSQL, grouping attendance punch history by month and displaying verified monthly Present, Absent, and Permission rates.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: MODULE 01 -->
+    <div id="section-3">
+      <div class="section-header">
+        <i class="ti ti-qrcode fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">3. Module 01: Universal Barcode Identity & Generation</h3>
+      </div>
+      <p>
+        The generation engine converts verified demographics into a scannable Code 128 standard 1D barcode and 2D QR badge.
+      </p>
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Attribute</th>
+            <th>Specification</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Symbology</strong></td>
+            <td>Code 128 (High-Density Alphanumeric) &amp; QR Code</td>
+            <td>Ensures instant readability on all 1D laser scanners and webcams.</td>
+          </tr>
+          <tr>
+            <td><strong>Universal Payload</strong></td>
+            <td><code>EMP-XXX</code> or Cryptographic Hash</td>
+            <td>Resolves to the employee's immutable primary key in the database.</td>
+          </tr>
+          <tr>
+            <td><strong>Badge Components</strong></td>
+            <td>Photo, Universal Code, Active Company, Role, Salary Slip URL</td>
+            <td>Printable digital credential for on-site visual and hardware verification.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 4: MODULE 02 -->
+    <div id="section-4" class="page-break">
+      <div class="section-header">
+        <i class="ti ti-camera fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">4. Module 02: Real-Time Optical Attendance Kiosk</h3>
+      </div>
+      <p>
+        The kiosk module turns any laptop, tablet, or USB camera into an enterprise-grade biometric barcode terminal.
+      </p>
+      
+      <div class="flow-card">
+        <h6 class="fw-bold text-dark mb-2">Key Kiosk Capabilities:</h6>
+        <ul class="mb-0">
+          <li class="mb-1"><strong>Smart Toggle Check-In / Check-Out:</strong> First scan of the day logs <em>Check-In</em>; subsequent scans log <em>Check-Out</em> and compute exact shift duration.</li>
+          <li class="mb-1"><strong>Foreign Barcode Rejection:</strong> Only barcodes generated by this software are validated; random retail barcodes are rejected immediately.</li>
+          <li class="mb-1"><strong>3-Second Visual Cooldown Overlay:</strong> Prevents duplicate scanning loops and displays employee name, photo, and time badge.</li>
+          <li class="mb-1"><strong>Real-Time WebSocket Stream:</strong> Live scans appear instantly in the manager activity console without page reloads.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION 5: MODULE 03 -->
+    <div id="section-5">
+      <div class="section-header">
+        <i class="ti ti-lock-access fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">5. Module 03: Barcode Permission Lifecycle (Locking &amp; Re-Activation)</h3>
+      </div>
+      <p>
+        Addresses strict enterprise governance for employee joining, offboarding, and career transitions:
+      </p>
+      
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Lifecycle Stage</th>
+            <th>System Action</th>
+            <th>Database &amp; Permission State</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. New Onboarding</strong></td>
+            <td>Admin assigns barcode + Start Date</td>
+            <td><code>is_active = true</code>, <code>start_date = DATE</code>, <code>end_date = NULL</code>. Active for attendance.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Offboarding</strong></td>
+            <td>Admin clicks <em>"Enter Last Date"</em></td>
+            <td><code>end_date = DATE</code>, <code>is_active = false</code>. Button permanently replaced with locked badge (<code><i class="ti ti-lock"></i> Last: YYYY-MM-DD</code>).</td>
+          </tr>
+          <tr>
+            <td><strong>3. Access Revoked</strong></td>
+            <td>Offboarded employee scans barcode</td>
+            <td>Terminal returns <strong>403 Access Denied</strong> ("Barcode permission revoked or expired").</td>
+          </tr>
+          <tr>
+            <td><strong>4. Next Company</strong></td>
+            <td>New company activates barcode</td>
+            <td>Creates new <code>PersonDetails</code> entry with new joining date and company facility, reactivating pass.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 6: MODULE 04 -->
+    <div id="section-6" class="page-break">
+      <div class="section-header">
+        <i class="ti ti-calendar-stats fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">6. Module 04: Lifetime Company Attendance (Month-Wise Breakdown)</h3>
+      </div>
+      <p>
+        Allows companies to audit an employee's lifetime performance at their facility with month-by-month breakdowns:
+      </p>
+
+      <div class="flow-card">
+        <h6 class="fw-bold text-dark mb-2">Month-Wise Audit Parameters:</h6>
+        <div class="row g-3 text-xs mt-1">
+          <div class="col-md-3">
+            <div class="p-2.5 bg-white rounded border border-success">
+              <strong class="text-success d-block mb-1"><i class="ti ti-user-check me-1"></i> Total Present</strong>
+              Verified physical kiosk check-ins and remote punch records for the month.
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-2.5 bg-white rounded border border-danger">
+              <strong class="text-danger d-block mb-1"><i class="ti ti-user-x me-1"></i> Total Absent</strong>
+              Unexcused absences and recorded leave days during the working period.
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-2.5 bg-white rounded border border-warning">
+              <strong class="text-warning d-block mb-1"><i class="ti ti-clock-check me-1"></i> Permissions &amp; Leaves</strong>
+              Late arrivals, approved permission slips, and half-day authorizations.
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-2.5 bg-white rounded border border-primary">
+              <strong class="text-primary d-block mb-1"><i class="ti ti-percentage me-1"></i> Reliability Rate</strong>
+              Calculated attendance percentage: <code>(Present / Total Working Days) * 100</code>.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 7: DATABASE SCHEMA -->
+    <div id="section-7" class="page-break">
+      <div class="section-header">
+        <i class="ti ti-database fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">7. Relational Database Schema &amp; Data Models</h3>
+      </div>
+      <p>
+        The database is built on PostgreSQL via Prisma ORM to maintain strict relational integrity across employment history and attendance logs:
+      </p>
+
+      <div class="code-block">
+model Person {
+  id           String          @id @default(uuid())
+  name         String
+  email        String          @unique
+  mobileNumber String?         @map("mobile_number")
+  employeeCode String          @unique @map("employee_code")
+  address      String?
+  photoUrl     String?         @map("photo_url")
+  status       String          @default("active")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  details      PersonDetails[]
+  attendances  Attendance[]
+  @@map("persons")
+}
+
+model PersonDetails {
+  id             String    @id @default(uuid())
+  personId       String    @map("person_id")
+  companyName    String    @map("company_name")
+  department     String?
+  roleName       String    @map("role_name")
+  startDate      DateTime  @map("start_date")
+  endDate        DateTime? @map("end_date")
+  isActive       Boolean   @default(true) @map("is_active")
+  monthlySalary  Decimal   @map("monthly_salary")
+  annualSalary   Decimal   @map("annual_salary")
+  barcodeData    String?   @map("barcode_data")
+  salarySlipUrl  String?   @map("salary_slip_url")
+  salarySlipName String?   @map("salary_slip_name")
+  person         Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  @@map("person_details")
+}
+
+model Attendance {
+  id               String    @id @default(uuid())
+  personId         String?   @map("person_id")
+  employeeCode     String    @map("employee_code")
+  employeeName     String    @map("employee_name")
+  department       String?
+  punchDate        DateTime  @map("punch_date") @db.Date
+  punchTime        DateTime  @default(now()) @map("punch_time")
+  checkInTime      DateTime? @map("check_in_time")
+  checkOutTime     DateTime? @map("check_out_time")
+  status           String    @default("Present")
+  workMode         String?   @default("On-Site Kiosk") @map("work_mode")
+  verificationType String?   @default("Barcode Scanner") @map("verification_type")
+  notes            String?
+  person           Person?   @relation(fields: [personId], references: [id], onDelete: SetNull)
+  @@map("attendances")
+}
+      </div>
+    </div>
+
+    <!-- SECTION 8: API DIRECTORY -->
+    <div id="section-8">
+      <div class="section-header">
+        <i class="ti ti-api fs-4 text-success"></i>
+        <h3 class="mb-0 fs-5">8. REST API Specification &amp; Endpoint Directory</h3>
+      </div>
+      
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Functionality</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge bg-primary">POST</span></td>
+            <td><code>/api/v1/persons</code></td>
+            <td>Registers new employee, creates demographics &amp; employment history.</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-success">GET</span></td>
+            <td><code>/api/v1/persons</code></td>
+            <td>Retrieves all registered employees with relational employment histories.</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-warning text-dark">POST</span></td>
+            <td><code>/api/v1/persons/:id/deactivate</code></td>
+            <td>Offboards employee by recording unmodifiable <code>end_date</code> and setting <code>is_active=false</code>.</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-primary">POST</span></td>
+            <td><code>/api/v1/attendance/barcode-punch</code></td>
+            <td>Validates barcode pass, checks active company permissions, records check-in/out.</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-primary">POST</span></td>
+            <td><code>/api/v1/attendance/employee-lifetime-analytics</code></td>
+            <td>Aggregates lifetime punch logs into month-wise Present, Absent, and Permission metrics.</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-success">GET</span></td>
+            <td><code>/api/v1/attendance/records</code></td>
+            <td>Fetches workforce attendance punch history with durations.</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-danger">DELETE</span></td>
+            <td><code>/api/v1/attendance/records/:id</code></td>
+            <td>Removes specific attendance log entry.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Document Footer -->
+    <div class="mt-5 pt-4 border-top text-center text-muted text-xs">
+      <p class="mb-1"><strong>Universal Employee Verification & Attendance System</strong> &bull; Confidential &amp; Proprietary Documentation</p>
+      <p class="mb-0">&copy; 2026 Enterprise Workforce Systems. All rights reserved.</p>
+    </div>
+
+  </div>
+
+</body>
+</html>

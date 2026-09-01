@@ -30,11 +30,16 @@ function formatPersonRecord(person) {
     ? latestDetail.photoUrl
     : (firstDetail && firstDetail.photoUrl ? firstDetail.photoUrl : '');
 
+  const workLocationVal = (latestDetail && latestDetail.workLocation)
+    ? latestDetail.workLocation
+    : (firstDetail && firstDetail.workLocation ? firstDetail.workLocation : 'Office');
+
   const employmentHistory = (person.personDetails || []).map((detail) => ({
     id: detail.id,
     company_name: detail.companyName || 'Enterprise Corp',
     department: detail.personDepartment ? detail.personDepartment.department.name : '',
     role_name: detail.personRole ? detail.personRole.role.name : 'Software Developer',
+    work_location: detail.workLocation || 'Office',
     company_address: detail.companyAddress || '',
     person_address: detail.personAddress || '',
     start_date: detail.startDate ? detail.startDate.toISOString().split('T')[0] : '',
@@ -49,11 +54,19 @@ function formatPersonRecord(person) {
     remarks: detail.remarks || ''
   }));
 
+  const isActiveVal = latestDetail ? latestDetail.isActive : (person.status === 'active' || person.status === 'verified');
+  const startDateVal = latestDetail && latestDetail.startDate ? latestDetail.startDate.toISOString().split('T')[0] : '';
+  const endDateVal = latestDetail && latestDetail.endDate ? latestDetail.endDate.toISOString().split('T')[0] : '';
+
   return {
     id: String(person.id),
     name: person.name,
     email: person.email,
     status: person.status,
+    is_active: isActiveVal,
+    start_date: startDateVal,
+    end_date: endDateVal,
+    work_location: workLocationVal,
     employee_code: latestDetail ? latestDetail.employeeCode : `EMP-${person.id}`,
     mobile_number: latestDetail ? latestDetail.mobile : '',
     address: addressVal,
@@ -256,6 +269,22 @@ exports.createPerson = async (req, res) => {
       });
     }
 
+    // Fetch existing details to preserve permanent universal barcode and employee code
+    const existingDetail = await prisma.personDetails.findFirst({
+      where: { personId: newPerson.id },
+      orderBy: { id: 'desc' }
+    });
+    const permanentBarcodeHash = (existingDetail && existingDetail.barcodeData) 
+      ? existingDetail.barcodeData 
+      : ('hash-' + Math.random().toString(36).substring(2, 12));
+    const permanentEmployeeCode = employee_code || (existingDetail ? existingDetail.employeeCode : `EMP-${newPerson.id}`);
+
+    // If person was previously inactive/offboarded, re-activate person status for the new company
+    await prisma.person.update({
+      where: { id: newPerson.id },
+      data: { status: 'verified' }
+    });
+
     for (const exp of historyItems) {
       const parsedStartDate = (exp.start_date && !isNaN(new Date(exp.start_date)))
         ? new Date(exp.start_date)
@@ -265,6 +294,8 @@ exports.createPerson = async (req, res) => {
         ? new Date(exp.end_date)
         : null;
 
+      const isCurrentTenure = exp.is_current || !parsedEndDate;
+
       const paymentSlipVal = exp.salary_slip_name || exp.salary_slip_url || exp.payment_slip || '';
       const remarksVal = exp.remarks || '';
       const photoVal = photo_url || exp.photo_url || '';
@@ -272,20 +303,22 @@ exports.createPerson = async (req, res) => {
       await prisma.personDetails.create({
         data: {
           personId: newPerson.id,
-          mobile: mobile_number || '',
+          mobile: mobile_number || (existingDetail ? existingDetail.mobile : ''),
           companyName: exp.company_name || 'Enterprise Corp',
-          barcodeData: barcodeHash,
+          barcodeData: permanentBarcodeHash,
           monthlySalary: exp.monthly_salary ? parseFloat(exp.monthly_salary) : 50000,
           totalExperience: exp.total_experience || '1 yr',
           startDate: parsedStartDate,
           endDate: parsedEndDate,
+          isActive: isCurrentTenure,
           personDeptId: personDept ? personDept.id : null,
           personRoleId: personRole ? personRole.id : null,
-          employeeCode: employee_code || `EMP-${newPerson.id}`,
+          employeeCode: permanentEmployeeCode,
           companyAddress: exp.company_address || '',
-          personAddress: address || '',
+          personAddress: address || (existingDetail ? existingDetail.personAddress : ''),
           photoUrl: photoVal,
-          status: 'verified',
+          workLocation: exp.work_location || req.body.work_location || 'Office',
+          status: isCurrentTenure ? 'verified' : 'inactive',
           remarks: remarksVal,
           paymentSlip: paymentSlipVal
         }
@@ -331,5 +364,105 @@ exports.deletePerson = async (req, res) => {
   } catch (error) {
     console.error('Error deleting person:', error);
     res.status(500).json({ success: false, message: 'Server error deleting person record.' });
+  }
+};
+
+// 6. Deactivate / Offboard Employee (Revoke Barcode Permission)
+exports.deactivateEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { end_date, reason } = req.body || {};
+
+    const effectiveEndDate = (end_date && !isNaN(new Date(end_date)))
+      ? new Date(end_date)
+      : new Date();
+
+    // Look up person by ID or employeeCode
+    let person = null;
+    if (!isNaN(id)) {
+      person = await prisma.person.findUnique({
+        where: { id: BigInt(id) },
+        include: { personDetails: true }
+      });
+    }
+
+    if (!person) {
+      const detail = await prisma.personDetails.findFirst({
+        where: { employeeCode: id },
+        include: { person: true }
+      });
+      if (detail && detail.person) {
+        person = detail.person;
+      }
+    }
+
+    if (!person) {
+      return res.status(404).json({
+        success: false,
+        message: `Employee record not found for identifier "${id}".`
+      });
+    }
+
+    // 1. Update Person Details: set is_active = false, end_date, status = 'inactive'
+    await prisma.personDetails.updateMany({
+      where: { personId: person.id },
+      data: {
+        isActive: false,
+        endDate: effectiveEndDate,
+        status: 'inactive',
+        remarks: reason ? `Offboarded: ${reason}` : 'Offboarded / Barcode Permission Revoked'
+      }
+    });
+
+    // 2. Update Person status
+    await prisma.person.update({
+      where: { id: person.id },
+      data: { status: 'inactive' }
+    });
+
+    // 3. Refetch updated person record
+    const updatedPerson = await prisma.person.findUnique({
+      where: { id: person.id },
+      include: {
+        personDepartments: { include: { department: true } },
+        personRoles: { include: { role: true } },
+        personDetails: {
+          include: {
+            personDepartment: { include: { department: true } },
+            personRole: { include: { role: true } }
+          }
+        }
+      }
+    });
+
+    const formatted = formatPersonRecord(updatedPerson);
+
+    // 4. Emit Socket.IO event to update connected kiosks & dashboard in real-time
+    const io = req.app ? req.app.get('io') : null;
+    if (io) {
+      io.emit('employee:deactivated', {
+        id: formatted.id,
+        employee_code: formatted.employee_code,
+        name: formatted.name,
+        is_active: false,
+        end_date: formatted.end_date,
+        reason: reason || 'Offboarded'
+      });
+    }
+
+    console.log(`🚫 Employee Offboarded / Barcode Revoked: ID ${person.id}, Code: ${formatted.employee_code}, End Date: ${formatted.end_date}`);
+
+    res.status(200).json({
+      success: true,
+      message: `Employee "${formatted.name}" (${formatted.employee_code}) has been successfully offboarded and barcode permission revoked.`,
+      data: formatted
+    });
+  } catch (error) {
+    console.error('Error deactivating employee:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error deactivating employee.',
+      error: error.message
+    });
   }
 };

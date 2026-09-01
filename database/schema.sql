@@ -1,20 +1,12 @@
 -- =====================================================================
 -- Background Verification System - PostgreSQL Database Schema
--- Entities: Person, Department, Roles, Person_Department, Person_Roles, Person_Details
+-- Entities: Person, Department, Roles, Person_Department, Person_Roles, Person_Details, Attendance
 -- =====================================================================
 
--- Enable UUID extension if UUID primary keys are preferred
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Optional: Custom Status Enum Type
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'record_status') THEN
-        CREATE TYPE record_status AS ENUM ('active', 'inactive', 'pending', 'verified', 'archived');
-    END IF;
-END$$;
-
 -- Drop Tables (in reverse dependency order)
+DROP TABLE IF EXISTS attendance CASCADE;
 DROP TABLE IF EXISTS person_details CASCADE;
 DROP TABLE IF EXISTS person_roles CASCADE;
 DROP TABLE IF EXISTS person_department CASCADE;
@@ -58,7 +50,6 @@ CREATE TABLE roles (
 
 -- ---------------------------------------------------------------------
 -- 4. PERSON_DEPARTMENT TABLE (Junction Table: Person <-> Department)
--- Maps persons to one or multiple departments with status tracking
 -- ---------------------------------------------------------------------
 CREATE TABLE person_department (
     id            BIGSERIAL PRIMARY KEY,
@@ -71,7 +62,6 @@ CREATE TABLE person_department (
 
 -- ---------------------------------------------------------------------
 -- 5. PERSON_ROLES TABLE (Junction Table: Person <-> Roles)
--- Maps persons to one or multiple designations/roles with status tracking
 -- ---------------------------------------------------------------------
 CREATE TABLE person_roles (
     id          BIGSERIAL PRIMARY KEY,
@@ -84,7 +74,7 @@ CREATE TABLE person_roles (
 
 -- ---------------------------------------------------------------------
 -- 6. PERSON_DETAILS TABLE
--- Stores detailed verification, mobile, company, experience, and salary information
+-- Stores employee details, barcode string, salary, and company info
 -- ---------------------------------------------------------------------
 CREATE TABLE person_details (
     id                BIGSERIAL PRIMARY KEY,
@@ -94,11 +84,13 @@ CREATE TABLE person_details (
     barcode_data      TEXT,
     monthly_salary    NUMERIC(12, 2),
     total_experience  VARCHAR(50),
-    start_date        DATE,
+    start_date        DATE         DEFAULT CURRENT_DATE,
     end_date          DATE,
+    is_active         BOOLEAN      NOT NULL DEFAULT TRUE,
     person_dept_id    BIGINT       REFERENCES person_department(id) ON DELETE SET NULL ON UPDATE CASCADE,
     person_role_id    BIGINT       REFERENCES person_roles(id) ON DELETE SET NULL ON UPDATE CASCADE,
-    employee_code     VARCHAR(50),
+    employee_code     VARCHAR(50)  UNIQUE,
+    biometric_pin     VARCHAR(50),
     company_address   TEXT,
     person_address    TEXT,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -108,75 +100,41 @@ CREATE TABLE person_details (
     photo_url         TEXT
 );
 
+-- ---------------------------------------------------------------------
+-- 7. ATTENDANCE TABLE
+-- Camera Barcode Scanner Attendance (Daily Check-In & Check-Out)
+-- ---------------------------------------------------------------------
+CREATE TABLE attendance (
+    id                  BIGSERIAL PRIMARY KEY,
+    person_id           BIGINT       REFERENCES person(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    employee_code       VARCHAR(50)  NOT NULL,
+    employee_name       VARCHAR(150) NOT NULL,
+    department          VARCHAR(150),
+    punch_time          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    punch_date          DATE         NOT NULL DEFAULT CURRENT_DATE,
+    check_in_time       TIMESTAMPTZ,
+    check_out_time      TIMESTAMPTZ,
+    duration            VARCHAR(50),
+    verification_type   VARCHAR(100) DEFAULT 'Barcode Scanner',
+    location            VARCHAR(150) DEFAULT 'Front Desk Kiosk',
+    device_name         VARCHAR(150) DEFAULT 'Camera Barcode Kiosk',
+    terminal_sn         VARCHAR(100),
+    status              VARCHAR(50)  NOT NULL DEFAULT 'Present',
+    work_mode           VARCHAR(100) NOT NULL DEFAULT 'On-Site Kiosk',
+    notes               TEXT,
+    created_at          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- One daily attendance record per employee
+    CONSTRAINT uq_attendance_person_date UNIQUE (person_id, punch_date)
+);
+
 -- =====================================================================
--- INDEXES FOR PERFORMANCE OPTIMIZATION
+-- INDEXES
 -- =====================================================================
 CREATE INDEX idx_person_email ON person(email);
-CREATE INDEX idx_person_status ON person(status);
-
-CREATE INDEX idx_department_status ON department(status);
-CREATE INDEX idx_roles_status ON roles(status);
-
-CREATE INDEX idx_person_dept_person_id ON person_department(person_id);
-CREATE INDEX idx_person_dept_dept_id ON person_department(department_id);
-CREATE INDEX idx_person_dept_status ON person_department(status);
-
-CREATE INDEX idx_person_roles_person_id ON person_roles(person_id);
-CREATE INDEX idx_person_roles_role_id ON person_roles(role_id);
-CREATE INDEX idx_person_roles_status ON person_roles(status);
-
 CREATE INDEX idx_person_details_person_id ON person_details(person_id);
 CREATE INDEX idx_person_details_emp_code ON person_details(employee_code);
-CREATE INDEX idx_person_details_status ON person_details(status);
-
--- =====================================================================
--- SAMPLE SEED DATA
--- =====================================================================
-
--- Insert Departments
-INSERT INTO department (name, status) VALUES
-('Software Engineering', 'active'),
-('Product & Design', 'active'),
-('Cloud Infrastructure & DevOps', 'active'),
-('Human Resources', 'active');
-
--- Insert Roles
-INSERT INTO roles (name, status) VALUES
-('Lead Frontend Developer', 'active'),
-('UI/UX Developer', 'active'),
-('DevOps & Systems Architect', 'active'),
-('HR Specialist', 'active');
-
--- Insert Persons
-INSERT INTO person (name, email, status) VALUES
-('Sarah Jenkins', 'sarah.jenkins@techcorp.io', 'verified'),
-('Alexander Vance', 'alex.vance@innovate.com', 'verified');
-
--- Assign Person to Department
-INSERT INTO person_department (person_id, department_id, status) VALUES
-(1, 1, 'active'), -- Sarah Jenkins -> Software Engineering
-(2, 3, 'active'); -- Alexander Vance -> Cloud Infrastructure
-
--- Assign Person to Roles
-INSERT INTO person_roles (person_id, role_id, status) VALUES
-(1, 1, 'active'), -- Sarah Jenkins -> Lead Frontend Developer
-(2, 3, 'active'); -- Alexander Vance -> DevOps & Systems Architect
-
--- Insert Person Details
-INSERT INTO person_details (
-    person_id, mobile, company_name, barcode_data, monthly_salary, 
-    total_experience, start_date, end_date, person_dept_id, person_role_id, 
-    employee_code, company_address, person_address, status, remarks, payment_slip
-) VALUES
-(
-    1, '+91 98765 43210', 'Apex Global Solutions', '8f7d9a12-4b21-41e9-9e8c-300000000001', 
-    85000.00, '2 yrs 5 mos', '2022-03-01', NULL, 1, 1, 
-    'EMP-1001', '100 Tech Highway, Cyber City, Gurugram, India', '742 Evergreen Terrace, Springfield, OR 97477', 
-    'verified', 'Promoted to Senior Team Lead in 2024.', 'SalarySlip_Jan2026_SJenkins.pdf'
-),
-(
-    2, '+91 91234 56789', 'CloudScale Dynamics', '8f7d9a12-4b21-41e9-9e8c-300000000002', 
-    98000.00, '3 yrs 2 mos', '2021-06-01', NULL, 2, 2, 
-    'EMP-1002', '500 Enterprise Way, HITEC City, Hyderabad, India', '100 Innovation Blvd, Tech City, CA 94016', 
-    'verified', 'Maintains core cloud deployment infrastructure.', 'SalarySlip_CloudScale_Alex.pdf'
-);
+CREATE INDEX idx_person_details_barcode ON person_details(barcode_data);
+CREATE INDEX idx_attendance_person_id ON attendance(person_id);
+CREATE INDEX idx_attendance_emp_code ON attendance(employee_code);
+CREATE INDEX idx_attendance_punch_date ON attendance(punch_date);

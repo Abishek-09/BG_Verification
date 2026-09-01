@@ -6,8 +6,37 @@
   font-size: $font-xs !important;
 }
 
-.navbar .nav-link.active {
-  color: $primary !important;
+.navbar {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+
+  .nav-link {
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.85rem !important;
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      color: #09C82C !important;
+      background-color: rgba(9, 200, 44, 0.08) !important;
+    }
+
+    &.active {
+      color: #09C82C !important;
+      font-weight: 700 !important;
+      background-color: rgba(9, 200, 44, 0.12) !important;
+    }
+  }
+
+  .navbar-brand {
+    white-space: nowrap !important;
+  }
+
+  .btn, .badge {
+    white-space: nowrap !important;
+  }
 }
 
 /* Generous Button Inner Padding & Base Smooth Transition */
@@ -53,7 +82,7 @@
 }
 
 /* Universal Button Hover Action - Smooth Lift, Glow & Color Fill */
-.btn:hover,
+.btn:hover:not(.btn-outline-danger):not(.btn-outline-warning):not(.btn-danger):not(.btn-warning),
 .btn-primary:hover,
 .btn-outline-primary:hover,
 .btn-secondary:hover,
@@ -62,7 +91,7 @@
 .btn-outline-info:hover,
 .btn-light:hover,
 .btn-dark:hover,
-.navbar .btn:hover,
+.navbar .btn:hover:not(.btn-outline-danger):not(.btn-outline-warning),
 .navbar .btn-primary:hover,
 .navbar .btn-outline-primary:hover,
 .remove-card-btn:hover,
@@ -75,8 +104,34 @@
   box-shadow: 0 6px 18px rgba(9, 200, 44, 0.3) !important;
 }
 
-.btn:hover *,
-.navbar .btn:hover * {
+/* Danger Button Hover — Keep Red semantic color */
+.btn-outline-danger:hover,
+.btn-danger:hover {
+  background-color: #dc3545 !important;
+  background: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(220, 53, 69, 0.3) !important;
+
+  * { color: #ffffff !important; }
+}
+
+/* Warning Button Hover — Keep Amber semantic color */
+.btn-outline-warning:hover,
+.btn-warning:hover {
+  background-color: #ffc107 !important;
+  background: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #000000 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255, 193, 7, 0.3) !important;
+
+  * { color: #000000 !important; }
+}
+
+.btn:hover:not(.btn-outline-danger):not(.btn-outline-warning):not(.btn-danger):not(.btn-warning) *,
+.navbar .btn:hover:not(.btn-outline-danger):not(.btn-outline-warning) * {
   color: #ffffff !important;
 }
 
@@ -386,10 +441,6 @@ footer.bg-dark .footer-signup-btn:hover *,
   letter-spacing: 0.08em;
 }
 
-.text-xs {
-  font-size: 0.75rem !important;
-}
-
 #interactive-qr-reader {
   border: 0 !important;
   img {
@@ -663,3 +714,69 @@ footer.bg-dark {
   color: #475569 !important;
   border: 1px solid rgba(108, 117, 125, 0.3) !important;
 }
+
+/* ============================================================= */
+/* Missing Utility Classes (hover-lift, cursor-pointer, etc.)     */
+/* ============================================================= */
+
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease;
+
+  &:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08) !important;
+    border-color: rgba(9, 200, 44, 0.3) !important;
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Fractional Spacing & Padding Utilities */
+.p-0\.5, .p-0-5 { padding: 0.125rem !important; }
+.p-1\.5, .p-1-5 { padding: 0.375rem !important; }
+.p-2\.5, .p-2-5 { padding: 0.625rem !important; }
+.p-3\.5, .p-3-5 { padding: 1.125rem !important; }
+.p-4\.5, .p-4-5 { padding: 1.75rem !important; }
+
+.px-0\.5, .px-0-5 { padding-left: 0.125rem !important; padding-right: 0.125rem !important; }
+.px-1\.5, .px-1-5 { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.px-2\.5, .px-2-5 { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+.px-3\.5, .px-3-5 { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+.px-4\.5, .px-4-5 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+
+.py-0\.5, .py-0-5 { padding-top: 0.125rem !important; padding-bottom: 0.125rem !important; }
+.py-1\.5, .py-1-5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.py-2\.5, .py-2-5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+.py-3\.5, .py-3-5 { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+.py-4\.5, .py-4-5 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+
+.m-0\.5, .m-0-5 { margin: 0.125rem !important; }
+.m-1\.5, .m-1-5 { margin: 0.375rem !important; }
+.m-2\.5, .m-2-5 { margin: 0.625rem !important; }
+.m-3\.5, .m-3-5 { margin: 1.125rem !important; }
+
+.mb-0\.5, .mb-0-5 { margin-bottom: 0.125rem !important; }
+.mb-1\.5, .mb-1-5 { margin-bottom: 0.375rem !important; }
+.mb-2\.5, .mb-2-5 { margin-bottom: 0.625rem !important; }
+.mb-3\.5, .mb-3-5 { margin-bottom: 1.125rem !important; }
+
+.mt-0\.5, .mt-0-5 { margin-top: 0.125rem !important; }
+.mt-1\.5, .mt-1-5 { margin-top: 0.375rem !important; }
+.mt-2\.5, .mt-2-5 { margin-top: 0.625rem !important; }
+.mt-3\.5, .mt-3-5 { margin-top: 1.125rem !important; }
+
+.me-1\.5, .me-1-5 { margin-right: 0.375rem !important; }
+.ms-1\.5, .ms-1-5 { margin-left: 0.375rem !important; }
+
+.gap-0\.5 { gap: 0.125rem !important; }
+.gap-1\.5 { gap: 0.375rem !important; }
+.gap-2\.5 { gap: 0.625rem !important; }
+.gap-3\.5 { gap: 1.125rem !important; }

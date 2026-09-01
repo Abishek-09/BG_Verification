@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Architecture & Complete Workflow Diagram - Universal Verification & Attendance System</title>
+
+  <!-- Google Fonts & Tabler Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #09C82C;
+      --primary-dark: #079c23;
+      --primary-subtle: #e6f9ea;
+      --info: #0284c7;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --purple: #7c3aed;
+      --dark: #0f172a;
+      --slate: #334155;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --font: 'Plus Jakarta Sans', sans-serif;
+      --code: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--bg);
+      color: var(--slate);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    /* Fixed Download Bar */
+    .download-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: white;
+    }
+
+    .diagram-container {
+      max-width: 1100px;
+      margin: 75px auto 40px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      padding: 40px;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--dark);
+      font-weight: 700;
+    }
+
+    /* Architecture Layers */
+    .arch-layer {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      padding: 18px 22px;
+      margin-bottom: 20px;
+      position: relative;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .layer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid;
+    }
+
+    .layer-1 { border-left: 6px solid #0ea5e9; }
+    .layer-1 .layer-header { border-color: #0ea5e9; color: #0284c7; }
+
+    .layer-2 { border-left: 6px solid #8b5cf6; }
+    .layer-2 .layer-header { border-color: #8b5cf6; color: #7c3aed; }
+
+    .layer-3 { border-left: 6px solid #10b981; }
+    .layer-3 .layer-header { border-color: #10b981; color: #059669; }
+
+    .layer-4 { border-left: 6px solid #f59e0b; }
+    .layer-4 .layer-header { border-color: #f59e0b; color: #d97706; }
+
+    .layer-5 { border-left: 6px solid #09C82C; }
+    .layer-5 .layer-header { border-color: #09C82C; color: #079c23; }
+
+    .arch-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px 14px;
+      height: 100%;
+      display: flex;
+      flex-column: column;
+      justify-content: flex-start;
+      transition: all 0.2s;
+    }
+
+    .arch-box-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .arch-box-desc {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .arrow-connector {
+      text-align: center;
+      margin: -10px 0 10px;
+      color: #94a3b8;
+      font-size: 18px;
+    }
+
+    /* Lifecycle Step Card */
+    .lifecycle-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      position: relative;
+    }
+
+    .lifecycle-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    /* Print Setup */
+    @media print {
+      body {
+        background: #ffffff;
+        color: #000000;
+        font-size: 11px;
+      }
+
+      .download-bar {
+        display: none !important;
+      }
+
+      .diagram-container {
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        max-width: 100%;
+      }
+
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+
+      .arch-layer, .lifecycle-card {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 12mm 12mm 12mm 12mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Bar -->
+  <div class="download-bar">
+    <div class="d-flex align-items-center gap-2">
+      <i class="ti ti-sitemap fs-4 text-success"></i>
+      <span class="fw-bold">System Architecture & Workflow Diagram</span>
+      <span class="badge bg-secondary text-xs">Official Blueprint v2.4</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/index.html" class="btn btn-sm btn-outline-light rounded-pill px-3 text-xs">
+        <i class="ti ti-arrow-left me-1"></i> Main Application
+      </a>
+      <a href="/docs.html" class="btn btn-sm btn-outline-info rounded-pill px-3 text-xs">
+        <i class="ti ti-file-text me-1"></i> Project Docs
+      </a>
+      <button onclick="window.print()" class="btn btn-sm btn-success rounded-pill px-3 fw-bold text-xs shadow-sm">
+        <i class="ti ti-download me-1"></i> Download PDF Diagram
+      </button>
+    </div>
+  </div>
+
+  <div class="diagram-container">
+
+    <!-- Document Header -->
+    <div class="text-center pb-3 mb-4 border-bottom">
+      <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill text-xs fw-bold mb-2">
+        <i class="ti ti-topology-star-3 me-1"></i> ENTERPRISE WORKFORCE ARCHITECTURE BLUEPRINT
+      </span>
+      <h2 class="fw-extrabold text-dark mb-1" style="font-size: 26px;">Universal Employee Verification & Multi-Company Attendance System</h2>
+      <p class="text-muted text-xs max-w-2xl mx-auto mb-2">
+        Comprehensive 5-tier architecture illustrating client modules, optical scanning engines, real-time WebSocket communication, relational PostgreSQL persistence, and universal barcode permission lifecycle.
+      </p>
+      <div class="d-flex justify-content-center gap-3 text-xs text-muted">
+        <span><strong>Version:</strong> 2.4 Production</span> &bull;
+        <span><strong>Stack:</strong> Vanilla JS / CSS &bull; Node.js &bull; Express &bull; PostgreSQL &bull; Prisma &bull; Socket.IO</span>
+      </div>
+    </div>
+
+    <!-- TIER 1: FRONTEND CLIENT TIER -->
+    <div class="arch-layer layer-1">
+      <div class="layer-header">
+        <h5 class="mb-0 fs-6 fw-bold"><i class="ti ti-browser text-info me-1.5"></i> Tier 1: Frontend Client Presentation Layer (SPA)</h5>
+        <span class="badge bg-info-subtle text-info text-xs">Vanilla JS (ES6+) &bull; CSS3/SCSS &bull; Bootstrap 5.3</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-info"><i class="ti ti-home"></i> Landing &amp; History Router</div>
+              <div class="arch-box-desc">Module Gateway cards with HTML5 History API (<code>pushState</code> &amp; <code>popstate</code>) for forward/backward browser navigation.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-success"><i class="ti ti-qrcode"></i> Verification &amp; Pass Generator</div>
+              <div class="arch-box-desc">JsBarcode (Code 128) &amp; QRCode.js for instant dynamic badge rendering and verified demographic records.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-warning"><i class="ti ti-camera"></i> Optical Attendance Kiosk</div>
+              <div class="arch-box-desc">Html5Qrcode engine with webcam stream, laser target overlay, 3s visual cooldown, and foreign barcode rejection.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-primary"><i class="ti ti-calendar-stats"></i> Lifetime Attendance Portal</div>
+              <div class="arch-box-desc">Webcam scanner &amp; code search for month-wise Present, Absent, and Permission logs across tenure.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connector -->
+    <div class="arrow-connector"><i class="ti ti-arrows-down-up"></i> RESTful HTTP Requests &amp; Bidirectional WebSockets</div>
+
+    <!-- TIER 2: COMMUNICATION & GATEWAY TIER -->
+    <div class="arch-layer layer-2">
+      <div class="layer-header">
+        <h5 class="mb-0 fs-6 fw-bold"><i class="ti ti-network text-purple me-1.5"></i> Tier 2: Communication &amp; Security Gateway Tier</h5>
+        <span class="badge bg-purple-subtle text-purple text-xs">Express 5.x &bull; Socket.IO WebSockets &bull; CORS &bull; Multer</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-purple"><i class="ti ti-api"></i> REST Routing Gateway</div>
+              <div class="arch-box-desc">Handles employee provisioning, offboarding, attendance check-in/out, and monthly aggregation requests.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-danger"><i class="ti ti-shield-lock"></i> Company Auth &amp; Permission Guard</div>
+              <div class="arch-box-desc">Validates active company sessions and denies revoked/inactive barcode credentials with 403 Forbidden.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-info"><i class="ti ti-broadcast"></i> WebSocket Event Dispatcher</div>
+              <div class="arch-box-desc">Broadcasts <code>attendance:punch</code> events in real-time to the manager's live scan activity stream console.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connector -->
+    <div class="arrow-connector"><i class="ti ti-arrows-down-up"></i> Controller Invocation &amp; Business Logic Execution</div>
+
+    <!-- TIER 3: BUSINESS LOGIC TIER -->
+    <div class="arch-layer layer-3 page-break">
+      <div class="layer-header">
+        <h5 class="mb-0 fs-6 fw-bold"><i class="ti ti-cpu text-success me-1.5"></i> Tier 3: Core Application &amp; Business Logic Services</h5>
+        <span class="badge bg-success-subtle text-success text-xs">Modular Backend Controllers &bull; Aggregators</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-success"><i class="ti ti-id-badge-2"></i> Identity Controller</div>
+              <div class="arch-box-desc">Generates cryptographic barcode payload and maintains multi-employment relational history.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-warning"><i class="ti ti-lock"></i> Lifecycle &amp; Lock Engine</div>
+              <div class="arch-box-desc">Processes "Enter Last Date", permanently locks end dates, and switches active status to false.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-info"><i class="ti ti-clock-play"></i> Attendance Punch Engine</div>
+              <div class="arch-box-desc">Smart toggle logic for daily Check-In &amp; Check-Out with shift duration calculation and debounce lock.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-primary"><i class="ti ti-chart-bar"></i> Month-Wise Aggregator</div>
+              <div class="arch-box-desc">Groups punch records by <code>YYYY-MM</code>, computing verified Present, Absent, and Permission metrics.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connector -->
+    <div class="arrow-connector"><i class="ti ti-arrows-down-up"></i> Prisma ORM Queries &amp; Relational Data Mapping</div>
+
+    <!-- TIER 4: DATABASE TIER -->
+    <div class="arch-layer layer-4">
+      <div class="layer-header">
+        <h5 class="mb-0 fs-6 fw-bold"><i class="ti ti-database text-warning me-1.5"></i> Tier 4: Relational Persistence Layer (PostgreSQL)</h5>
+        <span class="badge bg-warning-subtle text-warning text-xs">PostgreSQL 18 &bull; Prisma ORM Client &bull; ACID Compliant</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-dark"><i class="ti ti-user"></i> persons Table</div>
+              <div class="arch-box-desc"><code>id (UUID PK)</code>, <code>name</code>, <code>email (UNIQUE)</code>, <code>employee_code (UNIQUE)</code>, <code>mobile_number</code>, <code>photo_url</code>, <code>status</code>.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-dark"><i class="ti ti-briefcase"></i> person_details Table</div>
+              <div class="arch-box-desc"><code>id (UUID PK)</code>, <code>person_id (FK)</code>, <code>company_name</code>, <code>start_date</code>, <code>end_date</code>, <code>is_active</code>, <code>monthly_salary</code>, <code>barcode_data</code>.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="arch-box">
+            <div>
+              <div class="arch-box-title text-dark"><i class="ti ti-calendar-event"></i> attendances Table</div>
+              <div class="arch-box-desc"><code>id (UUID PK)</code>, <code>person_id (FK)</code>, <code>punch_date</code>, <code>check_in_time</code>, <code>check_out_time</code>, <code>status</code>, <code>work_mode</code>, <code>notes</code>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 5: LIFECYCLE & WORKFLOW FLOWCHART -->
+    <div class="arch-layer layer-5 page-break">
+      <div class="layer-header">
+        <h5 class="mb-0 fs-6 fw-bold"><i class="ti ti-route text-success me-1.5"></i> Tier 5: End-to-End Universal Barcode Lifecycle Workflow</h5>
+        <span class="badge bg-success-subtle text-success text-xs">Multi-Company Career Flow</span>
+      </div>
+
+      <div class="row g-2">
+        <div class="col-md-2">
+          <div class="lifecycle-card text-center">
+            <div class="lifecycle-badge mx-auto">1</div>
+            <strong class="d-block text-dark text-xs mb-1">Onboarding</strong>
+            <p class="text-muted mb-0" style="font-size: 10px;">Barcode generated with <code>start_date</code> &amp; <code>is_active=true</code>.</p>
+          </div>
+        </div>
+
+        <div class="col-md-1 d-flex align-items-center justify-content-center text-muted">
+          <i class="ti ti-arrow-right fs-4"></i>
+        </div>
+
+        <div class="col-md-2">
+          <div class="lifecycle-card text-center">
+            <div class="lifecycle-badge mx-auto bg-warning">2</div>
+            <strong class="d-block text-dark text-xs mb-1">Daily Kiosk</strong>
+            <p class="text-muted mb-0" style="font-size: 10px;">Camera kiosk records Check-In/Out &amp; live WebSocket stream.</p>
+          </div>
+        </div>
+
+        <div class="col-md-1 d-flex align-items-center justify-content-center text-muted">
+          <i class="ti ti-arrow-right fs-4"></i>
+        </div>
+
+        <div class="col-md-2">
+          <div class="lifecycle-card text-center">
+            <div class="lifecycle-badge mx-auto bg-danger">3</div>
+            <strong class="d-block text-dark text-xs mb-1">Offboard / Lock</strong>
+            <p class="text-muted mb-0" style="font-size: 10px;">Admin enters <em>Last Date</em>. Permanently locked; status=inactive.</p>
+          </div>
+        </div>
+
+        <div class="col-md-1 d-flex align-items-center justify-content-center text-muted">
+          <i class="ti ti-arrow-right fs-4"></i>
+        </div>
+
+        <div class="col-md-2">
+          <div class="lifecycle-card text-center">
+            <div class="lifecycle-badge mx-auto bg-info">4</div>
+            <strong class="d-block text-dark text-xs mb-1">Re-Activation</strong>
+            <p class="text-muted mb-0" style="font-size: 10px;">Next company adds experience &amp; reactivates same barcode.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document Footer -->
+    <div class="mt-4 pt-3 border-top text-center text-muted text-xs">
+      <p class="mb-1"><strong>Universal Employee Verification & Attendance System</strong> &bull; Complete System Architecture Diagram</p>
+      <p class="mb-0">&copy; 2026 Enterprise Workforce Systems. All rights reserved.</p>
+    </div>
+
+  </div>
+
+</body>
+</html>
