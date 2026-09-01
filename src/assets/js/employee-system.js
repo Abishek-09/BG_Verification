@@ -1824,6 +1824,506 @@ export class AttendanceStore {
 }
 
 /**
+ * Hardware Device Controller — Bluetooth-Style Terminal Discovery & Pairing Engine
+ * Manages physical/network attendance machines (ZKTeco, Hikvision, Essl, Honeywell)
+ */
+export class HardwareDeviceController {
+  static STORAGE_KEY = 'learnhub_paired_hardware_device';
+  static currentPairedDevice = null;
+  static pendingPairingRequest = null;
+  static pairingModalInstance = null;
+  static detailsModalInstance = null;
+
+  static init() {
+    this.loadSavedDevice();
+    this.renderHeaderBadge();
+    this.attachEventListeners();
+    this.listenToSocketEvents();
+  }
+
+  static loadSavedDevice() {
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (saved) {
+        this.currentPairedDevice = JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved hardware terminal:', e);
+      this.currentPairedDevice = null;
+    }
+  }
+
+  static saveDevice(device) {
+    this.currentPairedDevice = device;
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(device));
+    } catch (e) {
+      console.warn('Failed to persist paired device:', e);
+    }
+    this.renderHeaderBadge();
+  }
+
+  static clearDevice() {
+    this.currentPairedDevice = null;
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch (e) {
+      console.warn('Failed to clear device from localStorage:', e);
+    }
+    this.renderHeaderBadge();
+  }
+
+  static renderHeaderBadge() {
+    const unpairedWrapper = document.getElementById('unpaired-device-dropdown-wrapper');
+    const pairedWrapper = document.getElementById('paired-terminal-active-badge-wrapper');
+    const labelEl = document.getElementById('paired-terminal-label');
+
+    if (this.currentPairedDevice) {
+      if (unpairedWrapper) unpairedWrapper.classList.add('d-none');
+      if (pairedWrapper) {
+        pairedWrapper.classList.remove('d-none');
+        pairedWrapper.classList.add('d-flex');
+      }
+      if (labelEl) {
+        const brand = this.currentPairedDevice.brand || 'Hardware';
+        const modelShort = (this.currentPairedDevice.model || 'Terminal').split(' ')[0];
+        labelEl.textContent = `${brand} ${modelShort} Active`;
+      }
+    } else {
+      if (unpairedWrapper) unpairedWrapper.classList.remove('d-none');
+      if (pairedWrapper) {
+        pairedWrapper.classList.add('d-none');
+        pairedWrapper.classList.remove('d-flex');
+      }
+    }
+  }
+
+  static attachEventListeners() {
+    // 1. Quick Pair Simulator dropdown items
+    document.querySelectorAll('.quick-pair-device-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const brand = btn.dataset.brand;
+        const model = btn.dataset.model;
+        this.triggerPairingSimulation(brand, model);
+      });
+    });
+
+    // 2. Accept Device Pairing Button
+    const acceptBtn = document.getElementById('btn-accept-device-pairing');
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', () => this.acceptPairing());
+    }
+
+    // 3. Deny Device Pairing Button
+    const denyBtn = document.getElementById('btn-deny-device-pairing');
+    if (denyBtn) {
+      denyBtn.addEventListener('click', () => this.denyPairing());
+    }
+
+    // 4. Close X on Pairing Modal
+    const closeXBtn = document.getElementById('btn-close-pairing-modal-x');
+    if (closeXBtn) {
+      closeXBtn.addEventListener('click', () => this.denyPairing());
+    }
+
+    // 5. Click on Paired Terminal Badge to view details
+    const viewTerminalBtn = document.getElementById('btn-view-paired-terminal');
+    if (viewTerminalBtn) {
+      viewTerminalBtn.addEventListener('click', () => this.openPairedTerminalModal());
+    }
+
+    // 6. Unpair buttons
+    const unpairQuickBtn = document.getElementById('btn-unpair-terminal-quick');
+    if (unpairQuickBtn) {
+      unpairQuickBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.confirmUnpairDevice();
+      });
+    }
+
+    const unpairModalBtn = document.getElementById('btn-unpair-terminal-modal');
+    if (unpairModalBtn) {
+      unpairModalBtn.addEventListener('click', () => this.confirmUnpairDevice());
+    }
+
+    // 7. Send Machine Test Punch Button
+    const testPunchBtn = document.getElementById('btn-send-machine-test-punch');
+    if (testPunchBtn) {
+      testPunchBtn.addEventListener('click', () => this.sendTestMachinePunch());
+    }
+  }
+
+  static listenToSocketEvents() {
+    if (typeof window !== 'undefined' && window.io) {
+      try {
+        const socket = window.io('http://localhost:5000');
+        socket.on('device-pairing-request', (device) => {
+          console.log('📡 Incoming Hardware Device Pairing Request via WebSockets:', device);
+          this.showPairingModal(device);
+        });
+
+        socket.on('device-paired-success', (device) => {
+          this.saveDevice(device);
+        });
+
+        socket.on('device-disconnected', () => {
+          this.clearDevice();
+        });
+      } catch (e) {
+        console.warn('Hardware device socket listener error:', e);
+      }
+    }
+  }
+
+  static async triggerPairingSimulation(brand, model) {
+    try {
+      const activeComp = CompanyAuthController.getActiveCompany();
+      const compName = (activeComp && activeComp.company_name) ? activeComp.company_name : 'NexGen Cloud Systems';
+
+      const res = await fetch('http://localhost:5000/api/v1/devices/pair-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand, model, companyName: compName })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.device) {
+          this.showPairingModal(data.device);
+        }
+      }
+    } catch (err) {
+      console.warn('Pairing simulation fallback to local:', err);
+      // Fallback local discovery object
+      const fallbackDevice = {
+        id: `dev_${Date.now()}`,
+        brand: brand || 'ZKTeco',
+        model: model || 'ProCapture-X Multi-Biometric',
+        deviceType: 'Facial & Optical Fingerprint Kiosk',
+        serialNumber: `SN-${(brand || 'ZK').substring(0, 2).toUpperCase()}-2026-X8892`,
+        ipAddress: '192.168.1.201',
+        port: 4370,
+        protocol: 'ADMS / ZKPush v8.2',
+        firmware: 'Ver 6.60 (Build 2026)',
+        capabilities: ['1D/2D Barcode', 'Face Recognition', 'SilkID Fingerprint', 'RFID Card'],
+        companyName: 'NexGen Cloud Systems'
+      };
+      this.showPairingModal(fallbackDevice);
+    }
+  }
+
+  static showPairingModal(device) {
+    this.pendingPairingRequest = device;
+
+    const brandBadge = document.getElementById('pairing-modal-brand-badge');
+    const snEl = document.getElementById('pairing-modal-sn');
+    const modelEl = document.getElementById('pairing-modal-device-model');
+    const typeEl = document.getElementById('pairing-modal-device-type');
+    const ipEl = document.getElementById('pairing-modal-ip');
+    const protoEl = document.getElementById('pairing-modal-proto');
+    const capsEl = document.getElementById('pairing-modal-capabilities');
+    const compEl = document.getElementById('pairing-modal-company-target');
+
+    const activeComp = CompanyAuthController.getActiveCompany();
+    const compName = (activeComp && activeComp.company_name) ? activeComp.company_name : (device.companyName || 'NexGen Cloud Systems');
+
+    if (brandBadge) brandBadge.textContent = device.brand || 'Hardware Terminal';
+    if (snEl) snEl.textContent = `SN: ${device.serialNumber || 'SN-ZK2026-8892'}`;
+    if (modelEl) modelEl.textContent = device.model || 'Attendance Terminal';
+    if (typeEl) typeEl.textContent = device.deviceType || 'Biometric & Optical Attendance Kiosk';
+    if (ipEl) ipEl.textContent = `${device.ipAddress || '192.168.1.201'}:${device.port || 4370}`;
+    if (protoEl) protoEl.textContent = device.protocol || 'TCP / ADMS Push';
+    if (compEl) compEl.textContent = compName;
+
+    if (capsEl && Array.isArray(device.capabilities)) {
+      capsEl.innerHTML = device.capabilities.map(c => 
+        `<span class="badge bg-white text-dark border px-2.5 py-1 rounded-pill text-2xs fw-semibold">${c}</span>`
+      ).join('');
+    }
+
+    // Audio / speech synthesis announcement for rich Bluetooth experience
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(`Nearby attendance machine found: ${device.brand} ${device.model}`);
+        utter.rate = 1.05;
+        window.speechSynthesis.speak(utter);
+      } catch (sErr) {
+        console.warn('Speech synthesis error:', sErr);
+      }
+    }
+
+    const modalEl = document.getElementById('modal-hardware-device-pairing');
+    if (modalEl && window.bootstrap) {
+      this.pairingModalInstance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+      this.pairingModalInstance.show();
+    }
+  }
+
+  static async acceptPairing() {
+    if (!this.pendingPairingRequest) return;
+    const device = this.pendingPairingRequest;
+
+    try {
+      const activeComp = CompanyAuthController.getActiveCompany();
+      const compName = (activeComp && activeComp.company_name) ? activeComp.company_name : 'NexGen Cloud Systems';
+
+      const res = await fetch('http://localhost:5000/api/v1/devices/accept-pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: device.id,
+          brand: device.brand,
+          model: device.model,
+          serialNumber: device.serialNumber,
+          ipAddress: device.ipAddress,
+          companyName: compName
+        })
+      });
+
+      let pairedResult = device;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.device) {
+          pairedResult = data.device;
+        }
+      }
+
+      this.saveDevice(pairedResult);
+
+      if (this.pairingModalInstance) {
+        this.pairingModalInstance.hide();
+      }
+
+      // Audio feedback
+      if ('speechSynthesis' in window) {
+        try {
+          const utter = new SpeechSynthesisUtterance(`${pairedResult.brand} paired and ready.`);
+          utter.rate = 1.05;
+          window.speechSynthesis.speak(utter);
+        } catch (sErr) {}
+      }
+
+      Swal.fire({
+        title: 'Machine Paired & Active!',
+        html: `
+          <div class="my-2 text-center">
+            <div class="avatar bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+              <i class="ti ti-plug-connected fs-1"></i>
+            </div>
+            <h5 class="fw-extrabold text-dark mb-1">${pairedResult.brand} ${pairedResult.model}</h5>
+            <p class="text-muted text-xs mb-2">Connected via <code>${pairedResult.ipAddress || 'LAN'}</code> on secured company network.</p>
+            <div class="badge bg-success text-white px-3 py-1.5 rounded-pill text-xs fw-bold">
+              <i class="ti ti-check me-1"></i> Synchronizing Punches with Project
+            </div>
+          </div>
+        `,
+        icon: 'success',
+        confirmButtonColor: '#09C82C',
+        confirmButtonText: 'Great, Ready to Scan!',
+        customClass: {
+          popup: 'rounded-4 shadow-lg border-0',
+          confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold'
+        },
+        buttonsStyling: false
+      });
+
+    } catch (err) {
+      console.error('Accept pairing error:', err);
+      this.saveDevice(device);
+      if (this.pairingModalInstance) this.pairingModalInstance.hide();
+    }
+  }
+
+  static async denyPairing() {
+    const device = this.pendingPairingRequest;
+    if (this.pairingModalInstance) {
+      this.pairingModalInstance.hide();
+    }
+
+    if (device) {
+      try {
+        await fetch('http://localhost:5000/api/v1/devices/reject-pair', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: device.id, brand: device.brand, model: device.model })
+        });
+      } catch (e) {}
+
+      Swal.fire({
+        title: 'Pairing Request Denied',
+        text: `Connection request from ${device.brand} ${device.model} was rejected.`,
+        icon: 'info',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3500,
+        timerProgressBar: true
+      });
+    }
+    this.pendingPairingRequest = null;
+  }
+
+  static openPairedTerminalModal() {
+    if (!this.currentPairedDevice) {
+      this.triggerPairingSimulation('ZKTeco', 'ProCapture-X Multi-Biometric');
+      return;
+    }
+
+    const dev = this.currentPairedDevice;
+    const titleEl = document.getElementById('paired-details-modal-title');
+    const snEl = document.getElementById('paired-details-sn');
+    const ipEl = document.getElementById('paired-details-ip');
+    const punchesEl = document.getElementById('paired-details-punches');
+    const compEl = document.getElementById('paired-details-company');
+    const latencyEl = document.getElementById('paired-details-latency');
+
+    if (titleEl) titleEl.textContent = `${dev.brand} ${dev.model}`;
+    if (snEl) snEl.textContent = dev.serialNumber || 'SN-ZK2026-X8892';
+    if (ipEl) ipEl.textContent = `${dev.ipAddress || '192.168.1.201'}:${dev.port || 4370}`;
+    if (punchesEl) punchesEl.textContent = dev.totalPunches || '0';
+    if (compEl) compEl.textContent = dev.companyName || 'NexGen Cloud Systems';
+    if (latencyEl) latencyEl.textContent = `${dev.latencyMs || 14} ms`;
+
+    // Populate employee selection dropdown for punch simulator
+    const selectEmp = document.getElementById('select-test-punch-employee');
+    if (selectEmp) {
+      const emps = EmployeeStore.getEmployees();
+      if (emps && emps.length > 0) {
+        selectEmp.innerHTML = emps.map(emp => 
+          `<option value="${emp.employee_code}">${emp.employee_code}: ${emp.name} (${emp.department || 'Staff'})</option>`
+        ).join('');
+      }
+    }
+
+    const modalEl = document.getElementById('modal-paired-terminal-details');
+    if (modalEl && window.bootstrap) {
+      this.detailsModalInstance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+      this.detailsModalInstance.show();
+    }
+  }
+
+  static async confirmUnpairDevice() {
+    const dev = this.currentPairedDevice;
+    if (!dev) return;
+
+    const result = await Swal.fire({
+      title: 'Unpair Attendance Machine?',
+      html: `Are you sure you want to disconnect <strong>${dev.brand} ${dev.model}</strong> from this project?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="ti ti-plug-connected-x me-1"></i> Yes, Unpair Machine',
+      cancelButtonText: 'Keep Connected',
+      customClass: {
+        popup: 'rounded-4 shadow-lg border-0',
+        confirmButton: 'btn btn-danger rounded-pill px-4 py-2.5 fw-bold me-2',
+        cancelButton: 'btn btn-secondary rounded-pill px-4 py-2.5 fw-bold'
+      },
+      buttonsStyling: false
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await fetch('http://localhost:5000/api/v1/devices/disconnect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: dev.id, brand: dev.brand })
+        });
+      } catch (e) {}
+
+      this.clearDevice();
+      if (this.detailsModalInstance) this.detailsModalInstance.hide();
+
+      Swal.fire({
+        title: 'Machine Disconnected',
+        text: `${dev.brand} ${dev.model} has been unpaired.`,
+        icon: 'success',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  }
+
+  static async sendTestMachinePunch() {
+    if (!this.currentPairedDevice) return;
+    const selectEmp = document.getElementById('select-test-punch-employee');
+    const empCode = selectEmp ? selectEmp.value : 'EMP-001';
+
+    try {
+      const res = await fetch('http://localhost:5000/api/v1/devices/machine-punch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scannedCode: empCode,
+          deviceId: this.currentPairedDevice.id,
+          deviceBrand: this.currentPairedDevice.brand,
+          deviceModel: this.currentPairedDevice.model,
+          terminalSn: this.currentPairedDevice.serialNumber
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Increment punch counter
+        this.currentPairedDevice.totalPunches = (this.currentPairedDevice.totalPunches || 0) + 1;
+        this.saveDevice(this.currentPairedDevice);
+
+        const punchesEl = document.getElementById('paired-details-punches');
+        if (punchesEl) punchesEl.textContent = this.currentPairedDevice.totalPunches;
+
+        // Play TTS Voice Confirmation
+        if ('speechSynthesis' in window) {
+          try {
+            const voiceText = `${data.attendance.employeeName}, ${data.action === 'CHECK_IN' ? 'Checked In' : 'Checked Out'} on ${this.currentPairedDevice.brand}`;
+            const utter = new SpeechSynthesisUtterance(voiceText);
+            utter.rate = 1.05;
+            window.speechSynthesis.speak(utter);
+          } catch (e) {}
+        }
+
+        Swal.fire({
+          title: `${data.action === 'CHECK_IN' ? 'Check-In' : 'Check-Out'} Verified!`,
+          html: `
+            <div class="my-2 text-center">
+              <div class="avatar bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 50px; height: 50px;">
+                <i class="ti ti-fingerprint fs-2"></i>
+              </div>
+              <h6 class="fw-bold text-dark mb-0.5">${data.attendance.employeeName}</h6>
+              <div class="text-xs text-muted font-monospace mb-2">${data.attendance.employeeCode} • ${data.attendance.department}</div>
+              <span class="badge bg-success text-white px-3 py-1 rounded-pill text-xs fw-bold">
+                <i class="ti ti-device-watch me-1"></i> ${this.currentPairedDevice.brand} ${this.currentPairedDevice.model}
+              </span>
+            </div>
+          `,
+          icon: 'success',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 4500,
+          timerProgressBar: true
+        });
+
+        // Trigger table refresh
+        AttendanceController.loadInitialData();
+      } else {
+        Swal.fire({
+          title: 'Punch Error',
+          text: data.message || 'Could not verify machine punch.',
+          icon: 'error'
+        });
+      }
+    } catch (err) {
+      console.error('Test machine punch error:', err);
+    }
+  }
+}
+
+/**
  * Attendance Controller — Camera-Based Barcode Kiosk & Live Activity Engine
  */
 export class AttendanceController {
@@ -1836,6 +2336,7 @@ export class AttendanceController {
 
   static init() {
     CompanyAuthController.renderActiveCompanyBadge();
+    HardwareDeviceController.init();
     this.renderAttendanceStats();
     this.renderAttendanceTable();
     this.attachFilterListeners();
@@ -4657,44 +5158,20 @@ export class LifetimeAttendanceController {
     } catch (err) {
       console.warn('Backend API unreachable, attempting offline local store resolution for lifetime analytics:', err.message);
 
-      // Resilient Fallback: Compute analytics from local EmployeeStore or predefined demo roster
+      // Resilient Fallback: Compute analytics from local EmployeeStore and AttendanceStore
       const employees = EmployeeStore.getEmployees();
       const codeClean = String(identifier || '').trim().toLowerCase();
-      let localEmp = employees.find(e => 
+      const localEmp = employees.find(e => 
         (e.employee_code && e.employee_code.toLowerCase() === codeClean) ||
         (e.id && String(e.id).toLowerCase() === codeClean) ||
         (e.barcode_hash && e.barcode_hash.toLowerCase() === codeClean) ||
         (e.name && e.name.toLowerCase().includes(codeClean))
       );
 
-      // Predefined Demo Employee Roster Fallback (Guarantees demo pills always load)
-      if (!localEmp) {
-        const demoRoster = {
-          'emp-016': { name: 'Deepak Raj', employee_code: 'EMP-016', email: 'deepak.raj@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Principal DevOps Architect', dept: 'Cloud Infrastructure' },
-          'emp-015': { name: 'Karthik Raja', employee_code: 'EMP-015', email: 'karthik.raja@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Senior Cloud Engineer', dept: 'DevOps' },
-          'emp-002': { name: 'Abishek', employee_code: 'EMP-002', email: 'abishek@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Full Stack Engineer', dept: 'Engineering' },
-          'emp-008': { name: 'dhanush', employee_code: 'EMP-008', email: 'dhanush@techsolutions.com', company: 'NexGen Cloud Systems', role: 'Systems Analyst', dept: 'Operations' },
-          'emp-009': { name: 'abi Jose', employee_code: 'EMP-009', email: 'abi.jose@nexgen.com', company: 'NexGen Cloud Systems', role: 'Frontend Engineer', dept: 'Engineering' },
-          'emp-001': { name: 'Aarav Patel', employee_code: 'EMP-001', email: 'aarav.patel@nexgen.com', company: 'NexGen Cloud Systems', role: 'Software Engineer', dept: 'Engineering' }
-        };
-        const hit = demoRoster[codeClean];
-        if (hit) {
-          localEmp = {
-            id: 'demo-' + hit.employee_code,
-            name: hit.name,
-            employee_code: hit.employee_code,
-            email: hit.email,
-            status: 'active',
-            is_active: true,
-            start_date: '2025-08-01'
-          };
-        }
-      }
-
       if (localEmp) {
         const history = EmployeeStore.getEmploymentHistory().filter(h => h.employee_id === localEmp.id);
         const latestHist = history[0] || {};
-        const startDate = latestHist.start_date || localEmp.start_date || '2025-08-01';
+        const startDate = latestHist.start_date || localEmp.start_date || '2025-12-10';
         const endDate = latestHist.end_date || localEmp.end_date || null;
         const isActive = localEmp.is_active !== false && localEmp.status !== 'inactive';
 

@@ -1752,7 +1752,69 @@
             <p class="text-muted text-xs mb-0">Hold company barcode pass / ID card up to camera for automated Check-In
               and Check-Out</p>
           </div>
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Hardware Terminal Connection & Pairing Indicator -->
+            <div id="hardware-terminal-status-container" class="d-flex align-items-center gap-2">
+              <!-- Default Unpaired State: Pair Machine Button with dropdown -->
+              <div class="dropdown" id="unpaired-device-dropdown-wrapper">
+                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1.5 fw-bold text-xs d-flex align-items-center gap-1.5 shadow-xs dropdown-toggle" id="btn-trigger-device-discovery" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="ti ti-devices text-success fs-5"></i> <span>Pair Machine</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 text-xs" style="min-width: 280px;" aria-labelledby="btn-trigger-device-discovery">
+                  <li><h6 class="dropdown-header text-uppercase text-xs fw-bold text-dark mb-1"><i class="ti ti-radar text-success me-1"></i> Discover Nearby Terminals</h6></li>
+                  <li>
+                    <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2 quick-pair-device-btn" href="javascript:void(0);" data-brand="ZKTeco" data-model="ProCapture-X Multi-Biometric">
+                      <i class="ti ti-device-watch text-primary fs-5"></i>
+                      <div>
+                        <strong class="d-block text-dark">ZKTeco ProCapture-X</strong>
+                        <span class="text-muted text-xs">Biometric & Optical Kiosk (TCP/IP)</span>
+                      </div>
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2 quick-pair-device-btn" href="javascript:void(0);" data-brand="Hikvision" data-model="DS-K1T804AMF Terminal">
+                      <i class="ti ti-scan text-success fs-5"></i>
+                      <div>
+                        <strong class="d-block text-dark">Hikvision DS-K1T804</strong>
+                        <span class="text-muted text-xs">Face & Barcode Terminal (LAN)</span>
+                      </div>
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2 quick-pair-device-btn" href="javascript:void(0);" data-brand="Essl" data-model="MB20 Time & Attendance">
+                      <i class="ti ti-fingerprint text-warning fs-5"></i>
+                      <div>
+                        <strong class="d-block text-dark">Essl MB20 Multi-Biometric</strong>
+                        <span class="text-muted text-xs">Time & Attendance Kiosk (eTimeTrack)</span>
+                      </div>
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2 quick-pair-device-btn" href="javascript:void(0);" data-brand="Honeywell" data-model="Voyager 1400g 2D Kiosk">
+                      <i class="ti ti-qrcode text-info fs-5"></i>
+                      <div>
+                        <strong class="d-block text-dark">Honeywell Voyager 1400g</strong>
+                        <span class="text-muted text-xs">High-Speed 2D Pass Reader (USB Direct)</span>
+                      </div>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Connected & Active State Badge (Shown when paired) -->
+              <div id="paired-terminal-active-badge-wrapper" class="d-none align-items-center gap-1.5">
+                <span class="badge bg-success text-white border border-success px-3 py-2 rounded-pill fw-bold text-xs d-flex align-items-center gap-1.5 cursor-pointer shadow-xs" id="btn-view-paired-terminal" title="Click to view hardware details and test machine punch">
+                  <span class="terminal-active-pulse"></span>
+                  <i class="ti ti-device-watch fs-6"></i>
+                  <span id="paired-terminal-label">ZKTeco Connected</span>
+                </span>
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill p-1.5 text-xs fw-semibold d-flex align-items-center justify-content-center" id="btn-unpair-terminal-quick" title="Unpair / Disconnect Machine" style="width: 28px; height: 28px;">
+                  <i class="ti ti-plug-connected-x"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Optical Scanner Active Status -->
             <span
               class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold text-xs d-flex align-items-center gap-1.5"
               id="kiosk-status-badge">
@@ -1760,11 +1822,12 @@
                 role="status"></span>
               <span id="hardware-connection-badge">Optical Scanner Active</span>
             </span>
+
             <div id="attendance-header-company-badge">
               <span
                 class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2 rounded-pill fw-bold text-xs">
                 <i class="ti ti-building me-1"></i> Company: <span id="att-header-company-name"
-                  class="fw-extrabold text-dark ms-1">Roriri Software Solution</span>
+                  class="fw-extrabold text-dark ms-1">NexGen Cloud Systems</span>
               </span>
             </div>
           </div>
@@ -3038,6 +3101,214 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 8. Bluetooth-Style Attendance Machine Pairing Modal                     -->
+  <!-- ===================================================================== -->
+  <div class="modal fade device-pairing-modal" id="modal-hardware-device-pairing" tabindex="-1" aria-labelledby="modalDevicePairingLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+      <div class="modal-content border-0 shadow-lg rounded-5 overflow-hidden">
+        
+        <!-- Modal Top Accent Banner -->
+        <div class="p-4 bg-light text-center position-relative border-bottom border-light-subtle">
+          <button type="button" class="btn-close position-absolute top-0 end-0 m-3" id="btn-close-pairing-modal-x" aria-label="Close"></button>
+          
+          <!-- Animated Radar Signal Waves -->
+          <div class="radar-signal-container mb-3">
+            <div class="radar-ring"></div>
+            <div class="radar-ring"></div>
+            <div class="radar-ring"></div>
+            <div class="radar-center-icon">
+              <i class="ti ti-devices"></i>
+            </div>
+          </div>
+
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-bold text-xs mb-2 d-inline-flex align-items-center gap-1.5">
+            <span class="terminal-active-pulse"></span> Nearby Machine Found
+          </span>
+          <h4 class="fw-extrabold text-dark mb-1" id="pairing-modal-title">Pairing Request</h4>
+          <p class="text-muted text-xs mb-0 max-w-sm mx-auto">
+            An attendance hardware terminal is broadcasting on your local network requesting to sync with your workforce platform.
+          </p>
+        </div>
+
+        <!-- Modal Device Details Card -->
+        <div class="modal-body p-4 bg-white">
+          <div class="p-3.5 bg-light-subtle rounded-4 border border-light-subtle mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="badge bg-dark text-white px-2.5 py-1 rounded-pill text-xs fw-bold font-monospace" id="pairing-modal-brand-badge">ZKTeco</span>
+              <span class="text-xs text-muted fw-semibold font-monospace" id="pairing-modal-sn">SN: ZK-2026-X8892</span>
+            </div>
+            
+            <h5 class="fw-extrabold text-dark mb-1" id="pairing-modal-device-model">ProCapture-X Multi-Biometric Terminal</h5>
+            <div class="text-xs text-muted mb-3" id="pairing-modal-device-type">Facial &amp; Optical Fingerprint Kiosk</div>
+
+            <!-- Hardware Specifications Grid -->
+            <div class="row g-2 mb-3 text-xs">
+              <div class="col-6">
+                <div class="hardware-spec-badge">
+                  <i class="ti ti-network text-primary fs-5"></i>
+                  <div>
+                    <span class="text-muted d-block text-2xs">Interface</span>
+                    <strong class="text-dark" id="pairing-modal-ip">192.168.1.201:4370</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="hardware-spec-badge">
+                  <i class="ti ti-cpu text-info fs-5"></i>
+                  <div>
+                    <span class="text-muted d-block text-2xs">Protocol</span>
+                    <strong class="text-dark" id="pairing-modal-proto">ADMS / ZKPush v8.2</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Capabilities Tags -->
+            <div class="mb-3">
+              <span class="text-2xs text-uppercase text-muted fw-bold d-block mb-1.5">Machine Capabilities</span>
+              <div class="d-flex flex-wrap gap-1.5" id="pairing-modal-capabilities">
+                <span class="badge bg-white text-dark border px-2.5 py-1 rounded-pill text-2xs fw-semibold">1D/2D Barcode</span>
+                <span class="badge bg-white text-dark border px-2.5 py-1 rounded-pill text-2xs fw-semibold">Face Recognition</span>
+                <span class="badge bg-white text-dark border px-2.5 py-1 rounded-pill text-2xs fw-semibold">SilkID Fingerprint</span>
+                <span class="badge bg-white text-dark border px-2.5 py-1 rounded-pill text-2xs fw-semibold">RFID Smart Card</span>
+              </div>
+            </div>
+
+            <!-- Target Authorized Company Binding -->
+            <div class="p-2.5 bg-success-subtle rounded-3 border border-success-subtle d-flex align-items-center justify-content-between text-xs">
+              <span class="text-success fw-bold d-flex align-items-center gap-1">
+                <i class="ti ti-building-check fs-6"></i> Target Workspace:
+              </span>
+              <strong class="text-dark" id="pairing-modal-company-target">NexGen Cloud Systems</strong>
+            </div>
+          </div>
+
+          <!-- Pairing Security Confirmation Notice -->
+          <div class="d-flex align-items-center gap-2 p-2.5 bg-light rounded-3 text-xs text-muted mb-0">
+            <i class="ti ti-shield-lock text-success fs-5"></i>
+            <span>Accepting will securely bind this machine to record punches for your registered employees.</span>
+          </div>
+        </div>
+
+        <!-- Modal Action Footer -->
+        <div class="modal-footer p-3.5 bg-light-subtle border-top d-flex align-items-center justify-content-between gap-2">
+          <button type="button" class="btn btn-outline-danger rounded-pill px-4 py-2.5 fw-bold text-xs d-flex align-items-center gap-1.5 shadow-xs" id="btn-deny-device-pairing">
+            <i class="ti ti-x"></i> <span>Denied</span>
+          </button>
+          
+          <button type="button" class="btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold text-xs d-flex align-items-center gap-1.5 shadow-sm flex-grow-1 justify-content-center" id="btn-accept-device-pairing">
+            <i class="ti ti-check fs-5"></i> <span>Accept &amp; Connect Device</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 9. Paired Terminal Management & Live Machine Punch Simulator Modal     -->
+  <!-- ===================================================================== -->
+  <div class="modal fade" id="modal-paired-terminal-details" tabindex="-1" aria-labelledby="modalPairedTerminalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+      <div class="modal-content border-0 shadow-lg rounded-5 overflow-hidden">
+        
+        <div class="modal-header bg-white border-bottom p-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="avatar bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+              <i class="ti ti-device-watch fs-4"></i>
+            </div>
+            <div>
+              <h5 class="fw-extrabold text-dark mb-0.5" id="paired-details-modal-title">ZKTeco ProCapture-X</h5>
+              <div class="text-xs text-success fw-bold d-flex align-items-center gap-1.5">
+                <span class="terminal-active-pulse"></span> Online &amp; Synchronized with Project
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body p-4 bg-light-subtle">
+          
+          <!-- Live Telemetry Grid -->
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <div class="p-3 bg-white rounded-3 border text-center shadow-xs">
+                <span class="text-2xs text-muted fw-bold text-uppercase d-block mb-1">Latency</span>
+                <strong class="text-dark fs-6" id="paired-details-latency">14 ms</strong>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-3 bg-white rounded-3 border text-center shadow-xs">
+                <span class="text-2xs text-muted fw-bold text-uppercase d-block mb-1">Signal</span>
+                <strong class="text-success fs-6" id="paired-details-signal">98%</strong>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-3 bg-white rounded-3 border text-center shadow-xs">
+                <span class="text-2xs text-muted fw-bold text-uppercase d-block mb-1">Punches</span>
+                <strong class="text-primary fs-6" id="paired-details-punches">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Machine Hardware Specs -->
+          <div class="p-3 bg-white rounded-4 border shadow-xs mb-3 text-xs">
+            <div class="d-flex justify-content-between py-1.5 border-bottom">
+              <span class="text-muted">Serial Number:</span>
+              <strong class="text-dark font-monospace" id="paired-details-sn">ZK-2026-X8892</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1.5 border-bottom">
+              <span class="text-muted">Network Address:</span>
+              <strong class="text-dark font-monospace" id="paired-details-ip">192.168.1.201:4370</strong>
+            </div>
+            <div class="d-flex justify-content-between py-1.5 border-bottom">
+              <span class="text-muted">Power Source:</span>
+              <span class="badge bg-success-subtle text-success fw-bold rounded-pill">AC Mains (100%)</span>
+            </div>
+            <div class="d-flex justify-content-between py-1.5">
+              <span class="text-muted">Company Workspace:</span>
+              <strong class="text-dark" id="paired-details-company">NexGen Cloud Systems</strong>
+            </div>
+          </div>
+
+          <!-- Hardware Punch Simulator Tool -->
+          <div class="p-3.5 bg-white rounded-4 border border-success-subtle shadow-xs mb-3">
+            <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-1.5 text-xs">
+              <i class="ti ti-hand-finger text-success"></i> Simulate Machine Punch
+            </h6>
+            <p class="text-muted text-2xs mb-2.5">
+              Simulate an employee swiping their ID card or placing their finger on this physical attendance machine.
+            </p>
+            
+            <div class="input-group mb-2">
+              <select class="form-select form-select-sm text-xs rounded-start-pill border-light-subtle" id="select-test-punch-employee">
+                <option value="EMP-001">EMP-001: Aarav Patel (Engineering)</option>
+                <option value="EMP-002">EMP-002: Abishek (Information Technology)</option>
+                <option value="EMP-003">EMP-003: Diya Sharma (Product Design)</option>
+                <option value="EMP-004">EMP-004: Rohan Mehta (Cloud Infrastructure)</option>
+              </select>
+              <button class="btn btn-success btn-sm text-white px-3 fw-bold rounded-end-pill text-xs d-flex align-items-center gap-1" type="button" id="btn-send-machine-test-punch">
+                <i class="ti ti-player-play"></i> Send Punch
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer p-3 bg-white border-top d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold text-xs d-flex align-items-center gap-1" id="btn-unpair-terminal-modal">
+            <i class="ti ti-plug-connected-x"></i> Unpair Machine
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4 py-1.5 fw-semibold text-xs" data-bs-dismiss="modal">
+            Close
+          </button>
+        </div>
+
       </div>
     </div>
   </div>

@@ -12,6 +12,7 @@ const uploadRoutes = require('./upload.routes');
 const paymentRoutes = require('./payment.routes');
 const attendanceRoutes = require('./attendance.routes');
 const authRoutes = require('./auth.routes');
+const deviceRoutes = require('./device.routes');
 
 router.use('/auth', authRoutes);
 router.use('/persons', personRoutes);
@@ -21,6 +22,7 @@ router.use('/roles', roleRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/payment', paymentRoutes);
 router.use('/attendance', attendanceRoutes);
+router.use('/devices', deviceRoutes);
 
 // Backwards-compatible alias for any legacy links
 router.use('/biometric', attendanceRoutes);
