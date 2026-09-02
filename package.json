@@ -10,7 +10,8 @@
     "server": "node backend/src/server.js",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:seed": "node prisma/seed.js"
   },
   "keywords": [],
   "author": "",
