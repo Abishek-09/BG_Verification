@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node backend/src/server.js",
+    "start": "node backend/src/server.js",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",

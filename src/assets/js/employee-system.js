@@ -677,9 +677,13 @@ export class CompanyAuthController {
           this.renderActiveCompanyBadge();
           if (window.employeeApp) window.employeeApp.showLandingScreen();
         } catch (err) {
+          const isNetworkError = err.name === 'TypeError' && String(err.message).toLowerCase().includes('fetch');
+          const errorMsg = isNetworkError
+            ? 'Unable to connect to the backend API server at http://localhost:5000. Please wait a moment while the backend server initializes and try again.'
+            : err.message;
           Swal.fire({
             title: 'Registration Error',
-            text: err.message,
+            text: errorMsg,
             icon: 'error'
           });
         }
@@ -755,9 +759,13 @@ export class CompanyAuthController {
           this.renderActiveCompanyBadge();
           if (window.employeeApp) window.employeeApp.showLandingScreen();
         } catch (err) {
+          const isNetworkError = err.name === 'TypeError' && String(err.message).toLowerCase().includes('fetch');
+          const errorMsg = isNetworkError
+            ? 'Unable to connect to the backend API server at http://localhost:5000. Please wait a moment while the backend server initializes and try again.'
+            : err.message;
           Swal.fire({
             title: 'Sign In Failed',
-            text: err.message,
+            text: errorMsg,
             icon: 'error'
           });
         }
@@ -1204,9 +1212,13 @@ export class EmployeePortalController {
           }
 
         } catch (err) {
+          const isNetworkError = err.name === 'TypeError' && String(err.message).toLowerCase().includes('fetch');
+          const errorMsg = isNetworkError
+            ? 'Unable to connect to the backend API server at http://localhost:5000. Please wait a moment while the backend server initializes and try again.'
+            : err.message;
           Swal.fire({
             title: 'Employee Sign In Failed',
-            text: err.message,
+            text: errorMsg,
             icon: 'error'
           });
         }

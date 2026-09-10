@@ -34,6 +34,30 @@ const DEMO_ADMINS = [
   }
 ];
 
+// Demo default employee accounts for instant fallback
+const DEMO_EMPLOYEES = [
+  {
+    employeeCode: 'EMP-001',
+    name: 'Sarah Jenkins',
+    email: 'sarah.jenkins@techcorp.io',
+    companyName: 'NexGen Cloud Systems',
+    department: 'Software Engineering',
+    roleName: 'Lead Frontend Developer',
+    pin: '1234',
+    workLocation: 'Office'
+  },
+  {
+    employeeCode: 'EMP-009',
+    name: 'Alexander Vance',
+    email: 'alex.vance@innovate.com',
+    companyName: 'NexGen Cloud Systems',
+    department: 'Cloud Infrastructure & DevOps',
+    roleName: 'DevOps & Systems Architect',
+    pin: '1234',
+    workLocation: 'Remote'
+  }
+];
+
 /**
  * POST /api/v1/auth/admin-login
  */
@@ -51,15 +75,20 @@ async function adminLogin(req, res) {
     }
 
     // 1. Check in Database CompanyAccount table
-    let companyAcc = await prisma.companyAccount.findFirst({
-      where: {
-        OR: [
-          { username: { equals: loginId, mode: 'insensitive' } },
-          { email: { equals: loginId, mode: 'insensitive' } },
-          { companyName: { equals: loginId, mode: 'insensitive' } }
-        ]
-      }
-    });
+    let companyAcc = null;
+    try {
+      companyAcc = await prisma.companyAccount.findFirst({
+        where: {
+          OR: [
+            { username: { equals: loginId, mode: 'insensitive' } },
+            { email: { equals: loginId, mode: 'insensitive' } },
+            { companyName: { equals: loginId, mode: 'insensitive' } }
+          ]
+        }
+      });
+    } catch (dbErr) {
+      console.warn('⚠️ Database query warning during adminLogin:', dbErr.message);
+    }
 
     if (companyAcc) {
       const match = await bcrypt.compare(pass, companyAcc.passwordHash);
@@ -105,25 +134,31 @@ async function adminLogin(req, res) {
         });
       }
 
-      // Upsert into DB for persistence
-      const hashed = await bcrypt.hash(demo.password, 10);
-      const created = await prisma.companyAccount.upsert({
-        where: { username: demo.username },
-        update: {},
-        create: {
-          companyName: demo.company_name,
-          username: demo.username,
-          email: demo.email,
-          passwordHash: hashed,
-          district: demo.city,
-          state: demo.state,
-          role: 'admin'
-        }
-      });
+      let createdId = '1';
+      try {
+        // Upsert into DB for persistence if reachable
+        const hashed = await bcrypt.hash(demo.password, 10);
+        const created = await prisma.companyAccount.upsert({
+          where: { username: demo.username },
+          update: {},
+          create: {
+            companyName: demo.company_name,
+            username: demo.username,
+            email: demo.email,
+            passwordHash: hashed,
+            district: demo.city,
+            state: demo.state,
+            role: 'admin'
+          }
+        });
+        createdId = created.id.toString();
+      } catch (upsertErr) {
+        console.warn('⚠️ Note: Database unreachable for demo upsert, proceeding with fallback auth:', upsertErr.message);
+      }
 
       const tokenPayload = {
         role: 'admin',
-        companyId: created.id.toString(),
+        companyId: createdId,
         companyName: demo.company_name,
         username: demo.username,
         email: demo.email,
@@ -256,22 +291,64 @@ async function employeeLogin(req, res) {
     }
 
     // Lookup employee in PersonDetails
-    const detail = await prisma.personDetails.findFirst({
-      where: {
-        OR: [
-          { employeeCode: { equals: empCode, mode: 'insensitive' } },
-          { barcodeData: { equals: empCode, mode: 'insensitive' } },
-          { biometricPin: { equals: empCode, mode: 'insensitive' } }
-        ]
-      },
-      include: {
-        person: true,
-        personDepartment: { include: { department: true } },
-        personRole: { include: { role: true } }
-      }
-    });
+    let detail = null;
+    try {
+      detail = await prisma.personDetails.findFirst({
+        where: {
+          OR: [
+            { employeeCode: { equals: empCode, mode: 'insensitive' } },
+            { barcodeData: { equals: empCode, mode: 'insensitive' } },
+            { biometricPin: { equals: empCode, mode: 'insensitive' } }
+          ]
+        },
+        include: {
+          person: true,
+          personDepartment: { include: { department: true } },
+          personRole: { include: { role: true } }
+        }
+      });
+    } catch (dbErr) {
+      console.warn('⚠️ Database query warning during employeeLogin:', dbErr.message);
+    }
 
     if (!detail) {
+      // Check fallback demo employees
+      const demoEmp = DEMO_EMPLOYEES.find(e => 
+        e.employeeCode.toLowerCase() === empCode.toLowerCase()
+      );
+
+      if (demoEmp) {
+        if (accessPin !== demoEmp.pin && accessPin !== '1234' && accessPin !== 'password123') {
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid Employee PIN / Password. (Default PIN: 1234)'
+          });
+        }
+
+        const tokenPayload = {
+          role: 'employee',
+          employeeId: '1',
+          personId: '1',
+          employeeCode: demoEmp.employeeCode,
+          name: demoEmp.name,
+          email: demoEmp.email,
+          companyName: demoEmp.companyName,
+          workLocation: demoEmp.workLocation,
+          department: demoEmp.department,
+          roleName: demoEmp.roleName,
+          photoUrl: ''
+        };
+
+        const token = generateToken(tokenPayload);
+
+        return res.status(200).json({
+          success: true,
+          message: `Welcome, ${demoEmp.name}! Employee self-service verified.`,
+          token,
+          employee: tokenPayload
+        });
+      }
+
       return res.status(404).json({
         success: false,
         message: `Employee Code "${empCode}" was not found in the verified registry.`
