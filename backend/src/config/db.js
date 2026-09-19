@@ -14,7 +14,7 @@ BigInt.prototype.toJSON = function () {
 
 const connectionString =
   process.env.DATABASE_URL ||
-  'postgresql://postgres:131006@localhost:5432/bg_verification?schema=public';
+  'postgresql://postgres:sanjayabi1107@localhost:5432/bg_verification?schema=public';
 
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
