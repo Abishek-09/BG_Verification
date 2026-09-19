@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Company & HR Admin Portal | Verification & Attendance Gateway</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Company and Human Resources administrative workspace for employee verification, optical camera scanners, shift configurations, and workforce attendance.">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tabler Icons Webfont CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/assets/scss/style.scss">
+
+  <!-- SweetAlert2 Library -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      background-image: 
+        radial-gradient(at 50% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 60%),
+        radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%),
+        radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 24px 24px;
+      min-height: 100vh;
+      color: #0f172a;
+    }
+
+    .auth-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    }
+
+    .brand-glow-badge {
+      background: #eef2ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+      letter-spacing: 0.04em;
+    }
+
+    .input-group-text {
+      background-color: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-right: none;
+      color: #64748b;
+    }
+
+    .form-control, .form-select {
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+      font-size: 0.875rem;
+      border-radius: 0.5rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: #6366f1 !important;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+      color: #0f172a !important;
+    }
+
+    .input-group .form-control {
+      border-left: none !important;
+    }
+
+    .form-control::placeholder {
+      color: #94a3b8;
+    }
+
+    .nav-pills-custom {
+      background: #f1f5f9 !important;
+      border: 1px solid #e2e8f0;
+      padding: 4px;
+      border-radius: 0.5rem;
+    }
+
+    .nav-pills-custom .nav-link {
+      color: #64748b !important;
+      font-weight: 500;
+      border-radius: 0.375rem;
+      padding: 0.45rem 1rem;
+      font-size: 0.8125rem;
+      border: none !important;
+      background: transparent !important;
+      transition: all 0.15s ease;
+    }
+
+    .nav-pills-custom .nav-link:hover {
+      color: #0f172a !important;
+    }
+
+    .nav-pills-custom .nav-link.active {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+      font-weight: 600;
+    }
+
+    .quick-demo-pill {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .quick-demo-pill:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+
+    .btn-password-toggle {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+      transition: all 0.15s ease;
+    }
+    .btn-password-toggle:hover {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+
+    .btn-auth-company {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .btn-auth-company:hover {
+      background-color: #6366f1 !important;
+      border-color: #6366f1 !important;
+      color: #ffffff !important;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25) !important;
+    }
+  </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100 justify-content-between">
+
+  <!-- Top Navigation Bar -->
+  <header class="py-3 px-4 px-md-5 border-bottom bg-white" style="border-color: #e2e8f0 !important;">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
+      <a href="/" class="text-decoration-none d-flex align-items-center gap-2">
+        <div class="avatar bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: #6366f1 !important;">
+          <i class="ti ti-shield-check fs-4"></i>
+        </div>
+        <div>
+          <span class="fw-bold text-dark fs-5 tracking-tight">Verification <span class="text-primary">&amp;</span> Attendance</span>
+          <span class="badge ms-1 px-2.5 py-1 text-2xs fw-bold" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;">Enterprise HR</span>
+        </div>
+      </a>
+
+      <div class="d-flex align-items-center gap-2">
+        <a href="/" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold text-xs d-flex align-items-center gap-1.5" style="background: #ffffff !important; border-color: #e2e8f0 !important; color: #475569 !important;">
+          <i class="ti ti-arrow-left"></i> Home
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Auth Container -->
+  <main class="container py-4 my-auto">
+    <div class="row justify-content-center">
+      <div class="col-xl-5 col-lg-6 col-md-8">
+
+        <div class="auth-card p-4 p-md-5">
+          <!-- Header Banner -->
+          <div class="text-center mb-4">
+            <span class="badge brand-glow-badge px-3 py-1 text-2xs fw-bold mb-2.5 text-uppercase">
+              <i class="ti ti-building me-1"></i> Company / HR Admin Portal
+            </span>
+            <h3 class="fw-bold text-dark mb-1.5 fs-4 tracking-tight">Administrator Sign In</h3>
+            <p class="text-muted text-xs mb-0" style="color: #64748b !important;">
+              Manage enterprise employees, optical camera scanners, shift policies, and verification audits.
+            </p>
+          </div>
+
+          <!-- Tab Navigation: Sign In vs Register -->
+          <ul class="nav nav-pills nav-pills-custom mb-4 justify-content-center" id="companyAuthTabs" role="tablist">
+            <li class="nav-item flex-fill text-center" role="presentation">
+              <button class="nav-link w-100 active" id="tab-btn-login" data-bs-toggle="pill" data-bs-target="#tab-content-login" type="button" role="tab">
+                <i class="ti ti-login me-1"></i> Sign In
+              </button>
+            </li>
+            <li class="nav-item flex-fill text-center" role="presentation">
+              <button class="nav-link w-100" id="tab-btn-register" data-bs-toggle="pill" data-bs-target="#tab-content-register" type="button" role="tab">
+                <i class="ti ti-user-plus me-1"></i> Register Organization
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tabs Content -->
+          <div class="tab-content" id="companyAuthTabsContent">
+            
+            <!-- 1. SIGN IN FORM -->
+            <div class="tab-pane fade show active" id="tab-content-login" role="tabpanel">
+              <form id="form-company-login" class="row g-3">
+                <div class="col-12">
+                  <label for="comp-login-user" class="form-label fw-semibold text-xs mb-1" style="color: #334155;">
+                    Admin Username or Company Email <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="ti ti-user"></i></span>
+                    <input type="text" class="form-control" id="comp-login-user" placeholder="e.g. admin_nexgen or admin@company.com" required autocomplete="username">
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="comp-login-pass" class="form-label fw-semibold text-xs mb-0" style="color: #334155;">
+                      Password <span class="text-danger">*</span>
+                    </label>
+                    <a href="javascript:void(0);" id="link-forgot-pass" class="text-xs fw-semibold text-decoration-none" style="color: #6366f1;">
+                      Forgot Password?
+                    </a>
+                  </div>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="ti ti-lock"></i></span>
+                    <input type="password" class="form-control" id="comp-login-pass" placeholder="••••••••" required autocomplete="current-password">
+                    <button type="button" class="btn btn-password-toggle border-start-0" id="btn-toggle-comp-pass" title="Toggle password visibility">
+                      <i class="ti ti-eye" id="icon-comp-pass"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="col-12 d-flex align-items-center justify-content-between text-xs">
+                  <div class="form-check">
+                    <input class="form-check-input cursor-pointer" type="checkbox" id="comp-remember-me" style="border-color: #cbd5e1;">
+                    <label class="form-check-label cursor-pointer" for="comp-remember-me" style="color: #475569;">
+                      Remember this organization
+                    </label>
+                  </div>
+                </div>
+
+                <div class="col-12 pt-2">
+                  <button type="submit" class="btn btn-auth-company btn-md w-100 py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2" id="btn-submit-comp-login">
+                    <i class="ti ti-login"></i> Sign In to Admin Workspace
+                  </button>
+                </div>
+              </form>
+
+              <!-- Quick 1-Click Demo Admin Logins -->
+              <div class="mt-4 pt-3 border-top" style="border-color: #e2e8f0 !important;">
+                <div class="text-2xs fw-bold text-uppercase mb-2.5 d-flex align-items-center justify-content-between" style="color: #64748b;">
+                  <span><i class="ti ti-click me-1 text-primary"></i> 1-Click Demo Admin Logins:</span>
+                  <span class="badge text-2xs" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">PostgreSQL Seeded</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                  <button type="button" class="quick-demo-pill p-2 text-start w-100 d-flex align-items-center justify-content-between quick-comp-btn" data-user="admin_nexgen" data-pass="password123">
+                    <div class="d-flex align-items-center gap-2.5">
+                      <div class="avatar rounded-3 p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #eef2ff; color: #6366f1;">
+                        <i class="ti ti-building"></i>
+                      </div>
+                      <div>
+                        <div class="fw-semibold text-xs text-dark">NexGen Cloud Systems</div>
+                        <div class="text-2xs" style="color: #64748b;">User: admin_nexgen • Pass: password123</div>
+                      </div>
+                    </div>
+                    <span class="badge text-2xs" style="background: #ffffff; color: #475569; border: 1px solid #e2e8f0;">Auto Fill &rarr;</span>
+                  </button>
+
+                  <button type="button" class="quick-demo-pill p-2 text-start w-100 d-flex align-items-center justify-content-between quick-comp-btn" data-user="admin_tcs" data-pass="password123">
+                    <div class="d-flex align-items-center gap-2.5">
+                      <div class="avatar rounded-3 p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #ecfdf5; color: #059669;">
+                        <i class="ti ti-building"></i>
+                      </div>
+                      <div>
+                        <div class="fw-semibold text-xs text-dark">Tata Consultancy Services</div>
+                        <div class="text-2xs" style="color: #64748b;">User: admin_tcs • Pass: password123</div>
+                      </div>
+                    </div>
+                    <span class="badge text-2xs" style="background: #ffffff; color: #475569; border: 1px solid #e2e8f0;">Auto Fill &rarr;</span>
+                  </button>
+
+                  <button type="button" class="quick-demo-pill p-2 text-start w-100 d-flex align-items-center justify-content-between quick-comp-btn" data-user="admin_infosys" data-pass="password123">
+                    <div class="d-flex align-items-center gap-2.5">
+                      <div class="avatar rounded-3 p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #fffbeb; color: #d97706;">
+                        <i class="ti ti-building"></i>
+                      </div>
+                      <div>
+                        <div class="fw-semibold text-xs text-dark">Infosys Technologies</div>
+                        <div class="text-2xs" style="color: #64748b;">User: admin_infosys • Pass: password123</div>
+                      </div>
+                    </div>
+                    <span class="badge text-2xs" style="background: #ffffff; color: #475569; border: 1px solid #e2e8f0;">Auto Fill &rarr;</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 2. REGISTER NEW ORGANIZATION FORM -->
+            <div class="tab-pane fade" id="tab-content-register" role="tabpanel">
+              <form id="form-company-register" class="row g-3">
+                <div class="col-12">
+                  <label for="comp-reg-name" class="form-label fw-semibold text-xs mb-1" style="color: #334155;">
+                    Company / Organization Name <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="ti ti-building"></i></span>
+                    <input type="text" class="form-control" id="comp-reg-name" placeholder="e.g. Acme Innovations Pvt Ltd" required>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="comp-reg-country" class="form-label fw-semibold text-xs mb-1" style="color: #334155;">
+                    Country <span class="text-danger">*</span>
+                  </label>
+                  <select class="form-select text-xs" id="comp-reg-country" required>
+                    <option value="India" selected>India</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="United Arab Emirates">United Arab Emirates</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="comp-reg-state" class="form-label fw-semibold text-xs mb-1" style="color: #334155;">
+                    State / Region <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="comp-reg-state" placeholder="e.g. Tamil Nadu" required>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="comp-reg-email" class="form-label fw-semibold text-xs mb-1" style="color: #334155;">
+                    Admin Corporate Email <span class="text-danger">*</span>
+                  </label>
+                  <input type="email" class="form-control" id="comp-reg-email" placeholder="admin@acme.com" required>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="comp-reg-username" class="form-label fw-semibold text-xs mb-1" style="color: #334155;">
+                    Admin Login Username <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="comp-reg-username" placeholder="e.g. admin_acme" required>
+                </div>
+
+                <div class="col-12">
+                  <label for="comp-reg-password" class="form-label fw-semibold text-xs mb-1" style="color: #334155;">
+                    Admin Security Password <span class="text-danger">*</span>
+                  </label>
+                  <input type="password" class="form-control" id="comp-reg-password" placeholder="Minimum 6 characters" minlength="6" required>
+                </div>
+
+                <div class="col-12 pt-2">
+                  <button type="submit" class="btn btn-auth-company btn-md w-100 py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2" id="btn-submit-comp-reg">
+                    <i class="ti ti-check"></i> Register Organization &amp; Launch
+                  </button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+
+
+
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Page Footer -->
+  <footer class="py-3 text-center text-xs bg-white border-top" style="color: #64748b; border-color: #e2e8f0 !important;">
+    <div class="container">
+      &copy; 2026 Background Verification &amp; Attendance Management System • Role-Guarded Enterprise Security
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Page Logic Module -->
+  <script type="module" src="/assets/js/login-company.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,834 @@
+// =====================================================================
+// Custom Styles & Modern SaaS Component Overrides (Linear / Vercel Aesthetic)
+// =====================================================================
+
+// Import existing modules
+@import "./avatar";
+@import "./button";
+@import "./icon-shape";
+@import "./utilities";
+@import "./card";
+
+// Micro Typography & Letter Spacing
+.text-xs {
+  font-size: 0.75rem !important; // 12px
+  line-height: 1rem;
+}
+
+.text-2xs {
+  font-size: 0.6875rem !important; // 11px
+  line-height: 0.875rem;
+}
+
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+
+.tracking-wide {
+  letter-spacing: 0.05em;
+}
+
+// ---------------------------------------------------------------------
+// 1. Navigation Bar (Minimalist, Sticky, Bordered)
+// ---------------------------------------------------------------------
+.navbar {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid $gray-200 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.2s ease;
+
+  .nav-link {
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $gray-600 !important;
+    padding: 0.45rem 0.85rem !important;
+    border-radius: $border-radius;
+    transition: all 0.15s ease-in-out;
+
+    i {
+      transition: color 0.15s ease;
+    }
+
+    &:hover {
+      color: $gray-900 !important;
+      background-color: $gray-100 !important;
+    }
+
+    &.active {
+      color: $primary !important;
+      font-weight: 600 !important;
+      background-color: rgba($primary, 0.08) !important;
+    }
+  }
+
+  .navbar-brand {
+    white-space: nowrap !important;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+// ---------------------------------------------------------------------
+// 2. Buttons & Micro-Interactions (Refined SaaS Feel)
+// ---------------------------------------------------------------------
+.btn {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: $border-radius;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  i {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover i {
+    transform: translateX(1px);
+  }
+
+  &:active {
+    transform: translateY(1px) scale(0.99) !important;
+    box-shadow: none !important;
+  }
+}
+
+// Primary Button
+.btn-primary {
+  background-color: $primary !important;
+  border-color: $primary !important;
+  color: #ffffff !important;
+
+  &:hover, &:focus {
+    background-color: $indigo-dark !important;
+    border-color: $indigo-dark !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba($primary, 0.28) !important;
+    transform: translateY(-1px);
+  }
+}
+
+// Outline Primary
+.btn-outline-primary {
+  color: $primary !important;
+  border-color: rgba($primary, 0.4) !important;
+  background-color: transparent !important;
+
+  &:hover, &:focus {
+    background-color: rgba($primary, 0.08) !important;
+    border-color: $primary !important;
+    color: $primary !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($primary, 0.12) !important;
+  }
+}
+
+// Success Button
+.btn-success {
+  background-color: $success !important;
+  border-color: $success !important;
+  color: #ffffff !important;
+
+  &:hover, &:focus {
+    background-color: darken(#10b981, 6%) !important;
+    border-color: darken(#10b981, 6%) !important;
+    box-shadow: 0 4px 12px rgba($success, 0.25) !important;
+    transform: translateY(-1px);
+  }
+}
+
+.btn-outline-success {
+  color: $success !important;
+  border-color: rgba($success, 0.4) !important;
+  background-color: transparent !important;
+
+  &:hover, &:focus {
+    background-color: rgba($success, 0.08) !important;
+    border-color: $success !important;
+    color: $success !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($success, 0.12) !important;
+  }
+}
+
+.btn-outline-info {
+  color: $info !important;
+  border-color: rgba($info, 0.4) !important;
+  background-color: transparent !important;
+
+  &:hover, &:focus {
+    background-color: rgba($info, 0.08) !important;
+    border-color: $info !important;
+    color: $info !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($info, 0.12) !important;
+  }
+}
+
+.btn-outline-warning {
+  color: $warning !important;
+  border-color: rgba($warning, 0.4) !important;
+  background-color: transparent !important;
+
+  &:hover, &:focus {
+    background-color: rgba($warning, 0.08) !important;
+    border-color: $warning !important;
+    color: $warning !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($warning, 0.12) !important;
+  }
+}
+
+// Outline Secondary / Ghost
+.btn-outline-secondary,
+.btn-light {
+  background-color: #ffffff !important;
+  border-color: $gray-200 !important;
+  color: $gray-700 !important;
+
+  &:hover, &:focus {
+    background-color: $gray-50 !important;
+    border-color: $gray-300 !important;
+    color: $gray-900 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+    transform: translateY(-1px);
+  }
+}
+
+// Landing Gateway Portal Cards / Buttons
+.btn-landing-company,
+.btn-landing-employee {
+  border-radius: $border-radius-lg !important;
+  font-weight: 600 !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-landing-company {
+  background-color: #ffffff !important;
+  color: $gray-900 !important;
+  border: 1px solid $gray-300 !important;
+
+  &:hover {
+    background-color: $primary !important;
+    border-color: $primary !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25) !important;
+  }
+}
+
+.btn-landing-employee {
+  background-color: #ffffff !important;
+  color: $gray-900 !important;
+  border: 1px solid $gray-300 !important;
+
+  &:hover {
+    background-color: $info !important;
+    border-color: $info !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.25) !important;
+  }
+}
+
+// ---------------------------------------------------------------------
+// 3. Cards & Containers (Flat, Clean 1px Borders)
+// ---------------------------------------------------------------------
+.card {
+  border: 1px solid $gray-200 !important;
+  border-radius: $border-radius-lg !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &.hover-lift:hover {
+    transform: translateY(-3px) !important;
+    border-color: $gray-300 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+  }
+}
+
+.landing-module-card {
+  border: 1px solid $gray-200 !important;
+  border-radius: $border-radius-xl !important;
+  background: #ffffff !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-4px) !important;
+    border-color: rgba($primary, 0.4) !important;
+    box-shadow: 0 14px 28px -4px rgba(15, 23, 42, 0.08) !important;
+  }
+}
+
+.card-demographics-section {
+  border-left: 3px solid $primary !important;
+  background-color: rgba($primary, 0.02) !important;
+  border-radius: $border-radius !important;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+// ---------------------------------------------------------------------
+// 4. Badges (Subtle, Refined, Rounded-Pill or Rounded-Md)
+// ---------------------------------------------------------------------
+.badge {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.35rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.bg-primary-subtle {
+  background-color: rgba($primary, 0.08) !important;
+  color: $primary !important;
+}
+
+.bg-success-subtle {
+  background-color: rgba($success, 0.1) !important;
+  color: darken($success, 10%) !important;
+}
+
+.bg-info-subtle {
+  background-color: rgba($info, 0.1) !important;
+  color: darken($info, 12%) !important;
+}
+
+.bg-warning-subtle {
+  background-color: rgba($warning, 0.12) !important;
+  color: darken($warning, 15%) !important;
+}
+
+.bg-danger-subtle {
+  background-color: rgba($danger, 0.1) !important;
+  color: darken($danger, 8%) !important;
+}
+
+// Attendance Status Badges
+.badge-attendance-present {
+  background-color: rgba($success, 0.1) !important;
+  color: darken($success, 8%) !important;
+  border: 1px solid rgba($success, 0.25) !important;
+}
+
+.badge-attendance-late {
+  background-color: rgba($warning, 0.12) !important;
+  color: darken($warning, 16%) !important;
+  border: 1px solid rgba($warning, 0.3) !important;
+}
+
+.badge-attendance-absent {
+  background-color: rgba($danger, 0.1) !important;
+  color: $danger !important;
+  border: 1px solid rgba($danger, 0.25) !important;
+}
+
+.badge-attendance-leave {
+  background-color: $gray-100 !important;
+  color: $gray-600 !important;
+  border: 1px solid $gray-200 !important;
+}
+
+// ---------------------------------------------------------------------
+// 5. Segmented Tabs & Nav-Pills
+// ---------------------------------------------------------------------
+.nav-pills {
+  background-color: $gray-100;
+  padding: 0.25rem;
+  border-radius: $border-radius-lg;
+  display: inline-flex;
+  gap: 0.25rem;
+
+  .nav-link {
+    color: $gray-600 !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: $border-radius;
+    border: none !important;
+    background: transparent !important;
+    transition: all 0.15s ease;
+
+    &:hover {
+      color: $gray-900 !important;
+    }
+
+    &.active {
+      background-color: #ffffff !important;
+      color: $gray-900 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+// 6. Tables (Clean SaaS Grid)
+// ---------------------------------------------------------------------
+.table {
+  color: $gray-700;
+  border-color: $gray-200;
+
+  thead th {
+    background-color: $gray-50;
+    color: $gray-500;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid $gray-200;
+    padding: 0.75rem 1rem;
+  }
+
+  tbody td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid $gray-100;
+  }
+
+  tbody tr {
+    transition: background-color 0.15s ease;
+    &:hover {
+      background-color: rgba($primary, 0.02) !important;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+// 7. Modals (Clean, Backdrop Blur, Elegant Surface)
+// ---------------------------------------------------------------------
+.modal-content {
+  border: 1px solid $gray-200 !important;
+  border-radius: $border-radius-xl !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+  overflow: hidden;
+}
+
+.modal-header {
+  border-bottom: 1px solid $gray-100 !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+.modal-footer {
+  border-top: 1px solid $gray-100 !important;
+  padding: 1rem 1.5rem !important;
+  background-color: $gray-50 !important;
+}
+
+// ---------------------------------------------------------------------
+// 8. Form Controls & Inputs
+// ---------------------------------------------------------------------
+.form-control,
+.form-select {
+  border: 1px solid $gray-200 !important;
+  border-radius: $border-radius !important;
+  font-size: 0.875rem;
+  padding: 0.55rem 0.85rem;
+  color: $gray-800;
+  background-color: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus {
+    border-color: $primary !important;
+    box-shadow: 0 0 0 3px rgba($primary, 0.12) !important;
+    outline: none;
+  }
+
+  &[readonly] {
+    background-color: $gray-50 !important;
+    color: $gray-500 !important;
+    border-color: $gray-200 !important;
+  }
+}
+
+.form-control.is-valid,
+.form-select.is-valid,
+.was-validated .form-control:valid,
+.was-validated .form-select:valid {
+  background-image: none !important;
+  padding-right: 0.75rem !important;
+}
+
+.file-upload-zone {
+  border: 1.5px dashed $gray-300 !important;
+  border-radius: $border-radius-lg !important;
+  background-color: $gray-50 !important;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: $primary !important;
+    background-color: rgba($primary, 0.02) !important;
+    transform: translateY(-1px);
+  }
+}
+
+// ---------------------------------------------------------------------
+// 9. 5-Step Process Timeline
+// ---------------------------------------------------------------------
+.steps-timeline {
+  position: relative;
+
+  .steps-line {
+    position: absolute;
+    top: 24px;
+    bottom: 24px;
+    left: 50%;
+    width: 2px;
+    background-color: $gray-200;
+    transform: translateX(-50%);
+    z-index: 0;
+    border-radius: 4px;
+  }
+
+  .steps-line-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: linear-gradient(180deg, $primary 0%, $sky 100%);
+    transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .step-item {
+    opacity: 0;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+    will-change: transform, opacity;
+
+    &.step-left {
+      transform: translateY(24px) translateX(-20px);
+    }
+    &.step-right {
+      transform: translateY(24px) translateX(20px);
+    }
+
+    &.is-visible {
+      opacity: 1;
+      transform: translate(0, 0) !important;
+
+      .step-circle {
+        background-color: $primary !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 0 6px rgba($primary, 0.15) !important;
+      }
+    }
+  }
+
+  .step-circle {
+    position: relative;
+    z-index: 2;
+    background-color: $gray-200 !important;
+    color: $gray-600 !important;
+    font-weight: 700;
+    transition: all 0.3s ease;
+  }
+}
+
+// ---------------------------------------------------------------------
+// 10. Hardware & Telemetry Animations
+// ---------------------------------------------------------------------
+.terminal-active-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: $emerald;
+  box-shadow: 0 0 0 0 rgba($emerald, 0.7);
+  animation: terminal-pulse 1.8s infinite;
+}
+
+@keyframes terminal-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba($emerald, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba($emerald, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba($emerald, 0);
+  }
+}
+
+.radar-signal-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+
+  .radar-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid rgba($primary, 0.35);
+    animation: radar-ripple 2.4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    pointer-events: none;
+
+    &:nth-child(2) {
+      animation-delay: 0.8s;
+      border-color: rgba($primary, 0.2);
+    }
+    &:nth-child(3) {
+      animation-delay: 1.6s;
+      border-color: rgba($primary, 0.1);
+    }
+  }
+
+  .radar-center-icon {
+    position: relative;
+    z-index: 2;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $primary 0%, $indigo-dark 100%);
+    box-shadow: 0 6px 18px rgba($primary, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+  }
+}
+
+// ---------------------------------------------------------------------
+// 11. Helper Spacing & Fractional Utilities
+// ---------------------------------------------------------------------
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.08) !important;
+  }
+}
+
+.cursor-pointer { cursor: pointer !important; }
+.transition-all { transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important; }
+
+.p-1\.5, .p-1-5 { padding: 0.375rem !important; }
+.p-2\.5, .p-2-5 { padding: 0.625rem !important; }
+.p-3\.5, .p-3-5 { padding: 1.125rem !important; }
+.p-4\.5, .p-4-5 { padding: 1.75rem !important; }
+
+.px-1\.5, .px-1-5 { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.px-2\.5, .px-2-5 { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+.px-3\.5, .px-3-5 { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+
+.py-1\.5, .py-1-5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.py-2\.5, .py-2-5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+.py-3\.5, .py-3-5 { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+
+.mb-0\.5, .mb-0-5 { margin-bottom: 0.125rem !important; }
+.mb-1\.5, .mb-1-5 { margin-bottom: 0.375rem !important; }
+.mb-2\.5, .mb-2-5 { margin-bottom: 0.625rem !important; }
+.mb-3\.5, .mb-3-5 { margin-bottom: 1.125rem !important; }
+
+.mt-1\.5, .mt-1-5 { margin-top: 0.375rem !important; }
+.mt-2\.5, .mt-2-5 { margin-top: 0.625rem !important; }
+.mt-3\.5, .mt-3-5 { margin-top: 1.125rem !important; }
+
+.me-1\.5, .me-1-5 { margin-right: 0.375rem !important; }
+.ms-1\.5, .ms-1-5 { margin-left: 0.375rem !important; }
+
+.gap-1\.5 { gap: 0.375rem !important; }
+.gap-2\.5 { gap: 0.625rem !important; }
+.gap-3\.5 { gap: 1.125rem !important; }
+
+// Accordion (Clean minimal borders)
+.accordion-item {
+  border: 1px solid $gray-200 !important;
+  border-radius: $border-radius !important;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+
+  .accordion-button {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: $gray-800;
+    padding: 1rem 1.25rem;
+    background-color: #ffffff;
+    box-shadow: none !important;
+
+    &:not(.collapsed) {
+      color: $primary;
+      background-color: rgba($primary, 0.03);
+    }
+  }
+
+  .accordion-body {
+    padding: 1.25rem;
+    color: $gray-600;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    background-color: $gray-50;
+  }
+}
+
+// Print Styles
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-badge-card, #printable-badge-card * {
+    visibility: visible;
+  }
+  #printable-badge-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
+}
+
+// Attendance Status Filters
+.btn-filter-att {
+  background-color: #ffffff !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  &:hover {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+    transform: translateY(-1px);
+  }
+
+  &.active {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #0f172a !important;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15) !important;
+    transform: none !important;
+  }
+}
+
+// Employee Hub Portal Action Buttons (Field 1 & Field 2)
+.btn-emp-hub-wfh {
+  background-color: #ffffff !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: $border-radius-lg !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  &:hover, &:focus {
+    background-color: #0ea5e9 !important;
+    border-color: #0ea5e9 !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28) !important;
+  }
+}
+
+.btn-emp-hub-view {
+  background-color: #ffffff !important;
+  color: #4f46e5 !important;
+  border: 1px solid #c7d2fe !important;
+  border-radius: $border-radius-lg !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  &:hover, &:focus {
+    background-color: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.28) !important;
+  }
+}
+
+// Trigger button hover on parent card hover
+#card-launch-emp-wfh:hover .btn-emp-hub-wfh {
+  background-color: #0ea5e9 !important;
+  border-color: #0ea5e9 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28) !important;
+}
+
+#card-launch-emp-view:hover .btn-emp-hub-view {
+  background-color: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.28) !important;
+}
+
+// Virtual WFH Punch Button
+.btn-wfh-punch {
+  background-color: #ffffff !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: $border-radius-lg !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  &:hover, &:focus {
+    background-color: #0ea5e9 !important;
+    border-color: #0ea5e9 !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28) !important;
+  }
+}
+
+// Sub-Navigation Back to Home Dashboard Button
+.btn-back-dashboard {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: $border-radius !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+  &:hover, &:focus {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15) !important;
+  }
+}
+
+// Modern SaaS Footer Links
+.footer-link {
+  color: #64748b !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+
+  &:hover {
+    color: #0f172a !important;
+    padding-left: 2px;
+  }
+}
+
+.footer-link-dark {
+  color: #94a3b8 !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+
+  &:hover, &:focus {
+    color: #ffffff !important;
+    padding-left: 2px;
+  }
+}
+
+
+
+
+

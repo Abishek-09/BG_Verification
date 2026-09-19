@@ -4,10 +4,12 @@
 
 # 1. Dependencies
 node_modules/
+frontend/node_modules/
 .pnpm-store/
 
 # 2. Production Build Output (Vite)
 dist/
+frontend/dist/
 dist-ssr/
 *.local
 

@@ -1,5 +1,5 @@
 // =====================================================================
-// Camera-Based Barcode Attendance Kiosk Controller
+// Camera-Based Barcode Attendance Controller
 // Handles: Barcode/QR scan ingestion, smart Check-In / Check-Out
 //          state resolution, PostgreSQL persistence, and Socket.IO broadcast
 // =====================================================================
@@ -34,7 +34,7 @@ function calculateDuration(checkIn, checkOut) {
   return `${hrs}h ${mins}m`;
 }
 
-// In-memory live scan stream (last 50 kiosk events)
+// In-memory live scan stream (last 50 scan events)
 let liveScanEvents = [];
 
 function addLiveScanEvent(event) {
@@ -135,13 +135,13 @@ async function resolveEmployee(scannedCode) {
 
 // =====================================================================
 // POST /api/v1/attendance/barcode-punch
-// Smart Barcode Kiosk Punch Handler
+// Smart Barcode Punch Handler
 // Determines Check-In vs Check-Out based on today's attendance row
 // =====================================================================
 router.post('/barcode-punch', async (req, res) => {
   const { employee_code, location } = req.body || {};
   const scannedCode = employee_code || req.body.barcode || '';
-  const kioskLocation = location || 'Front Desk Kiosk';
+  const scannerLocation = location || 'Front Desk';
 
   if (!scannedCode) {
     return res.status(400).json({
@@ -150,7 +150,7 @@ router.post('/barcode-punch', async (req, res) => {
     });
   }
 
-  console.log(`[BARCODE KIOSK SCAN] Code: "${scannedCode}", Location: "${kioskLocation}"`);
+  console.log(`[BARCODE SCAN] Code: "${scannedCode}", Location: "${scannerLocation}"`);
 
   // Step 1: Identity Verification
   const employee = await resolveEmployee(scannedCode);
@@ -195,7 +195,7 @@ router.post('/barcode-punch', async (req, res) => {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: todayStr,
       status: 'Denied',
-      location: kioskLocation,
+      location: scannerLocation,
       message: `Access Denied: ${reasonText}`
     });
 
@@ -213,7 +213,7 @@ router.post('/barcode-punch', async (req, res) => {
         },
         message: `Access Denied: ${reasonText}`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        location: kioskLocation
+        location: scannerLocation
       });
     }
 
@@ -274,10 +274,10 @@ router.post('/barcode-punch', async (req, res) => {
           duration: 'Active',
           status: 'Present',
           verificationType: 'Barcode Scanner',
-          location: kioskLocation,
-          deviceName: 'Camera Barcode Kiosk',
-          workMode: 'On-Site Kiosk',
-          notes: `Checked in via Camera Barcode Kiosk at ${formatTime12(now)}`
+          location: scannerLocation,
+          deviceName: 'Camera Barcode Scanner',
+          workMode: 'On-Site Scanner',
+          notes: `Checked in via Camera Barcode Scanner at ${formatTime12(now)}`
         }
       });
       message = `Welcome, ${employee.name}! Checked in at ${formatTime12(now)}.`;
@@ -313,7 +313,7 @@ router.post('/barcode-punch', async (req, res) => {
 
     // Step 3: Format live event for Activity Stream
     const streamEvent = {
-      id: `kiosk-scan-${Date.now()}`,
+      id: `scan-${Date.now()}`,
       action: action,
       employee_id: String(employee.personId),
       employee_name: employee.name,
@@ -326,7 +326,7 @@ router.post('/barcode-punch', async (req, res) => {
       check_in: formatTime24(attendanceRecord.checkInTime || attendanceRecord.punchTime),
       check_out: attendanceRecord.checkOutTime ? formatTime24(attendanceRecord.checkOutTime) : '',
       duration: attendanceRecord.duration || 'Active',
-      location: kioskLocation,
+      location: scannerLocation,
       verification_type: 'Barcode Scanner'
     };
 
@@ -351,8 +351,8 @@ router.post('/barcode-punch', async (req, res) => {
           duration: attendanceRecord.duration || 'Active',
           status: attendanceRecord.status,
           verification_type: 'Barcode Scanner',
-          location: kioskLocation,
-          work_mode: 'On-Site Kiosk'
+          location: scannerLocation,
+          work_mode: 'On-Site Scanner'
         },
         event: streamEvent
       });
@@ -366,7 +366,7 @@ router.post('/barcode-punch', async (req, res) => {
           department: employee.department,
           timestamp: now.toISOString(),
           verification_type: action === 'Check-In' ? 'Barcode Check-In' : 'Barcode Check-Out',
-          device: 'Camera Barcode Kiosk',
+          device: 'Camera Barcode Scanner',
           is_test: false
         },
         dbRecord: streamEvent,
@@ -396,12 +396,12 @@ router.post('/barcode-punch', async (req, res) => {
         checkOutFormatted: formatTime12(attendanceRecord.checkOutTime),
         duration: attendanceRecord.duration || 'Active',
         status: attendanceRecord.status,
-        location: kioskLocation
+        location: scannerLocation
       }
     });
 
   } catch (err) {
-    console.error('[BARCODE KIOSK] Database error:', err);
+    console.error('[BARCODE SCAN] Database error:', err);
     return res.status(500).json({
       success: false,
       message: 'Failed to record attendance: ' + err.message
@@ -431,9 +431,9 @@ router.get('/records', async (req, res) => {
       check_out: r.checkOutTime ? formatTime24(r.checkOutTime) : '',
       duration: r.duration || (r.checkOutTime ? calculateDuration(r.checkInTime || r.punchTime, r.checkOutTime) : 'Active'),
       status: r.status || 'Present',
-      work_mode: r.workMode || 'On-Site Kiosk',
+      work_mode: r.workMode || 'On-Site Scanner',
       verification_type: r.verificationType || 'Barcode Scanner',
-      location: r.location || 'Front Desk Kiosk',
+      location: r.location || 'Front Desk',
       notes: r.notes || ''
     }));
 
@@ -697,7 +697,7 @@ router.get('/my-annual-summary', authenticateJWT, async (req, res) => {
 
 // =====================================================================
 // GET /api/v1/attendance/live-stream
-// Retrieve recent kiosk scan activity stream
+// Retrieve recent scan activity stream
 // =====================================================================
 router.get('/live-stream', (req, res) => {
   return res.json({

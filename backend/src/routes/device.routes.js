@@ -17,7 +17,7 @@ const defaultDeviceCatalog = [
   {
     brand: 'ZKTeco',
     model: 'ProCapture-X Multi-Biometric Terminal',
-    deviceType: 'Facial & Optical Fingerprint Kiosk',
+    deviceType: 'Facial & Optical Fingerprint Terminal',
     serialNumber: 'ZK-2026-X8892',
     macAddress: '70:AF:6A:14:BC:90',
     ipAddress: '192.168.1.201',
@@ -41,7 +41,7 @@ const defaultDeviceCatalog = [
   {
     brand: 'Essl',
     model: 'MB20 Time & Attendance Terminal',
-    deviceType: 'Biometric Fingerprint & QR Kiosk',
+    deviceType: 'Biometric Fingerprint & QR Terminal',
     serialNumber: 'ESSL-4410-M98',
     macAddress: 'B8:27:EB:76:D2:19',
     ipAddress: '192.168.1.205',
@@ -52,7 +52,7 @@ const defaultDeviceCatalog = [
   },
   {
     brand: 'Honeywell',
-    model: 'Voyager 1400g High-Speed Kiosk',
+    model: 'Voyager 1400g High-Speed Scanner',
     deviceType: 'Industrial 2D Barcode Scanner Terminal',
     serialNumber: 'HW-1400G-8823',
     macAddress: '00:10:20:30:40:50',
@@ -272,7 +272,7 @@ router.post('/machine-punch', async (req, res) => {
     const empCode = details.employeeCode || `EMP-${person.id}`;
     const empName = person.name;
     const departmentName = dept.name || 'Operations';
-    const machineName = `${deviceBrand || 'Hardware Terminal'} ${deviceModel || 'Kiosk'}`.trim();
+    const machineName = `${deviceBrand || 'Hardware Terminal'} ${deviceModel || 'Terminal'}`.trim();
     const machineSn = terminalSn || 'SN-ZK2026-X8892';
 
     const now = new Date();
@@ -301,7 +301,7 @@ router.post('/machine-punch', async (req, res) => {
           punchTime: now,
           checkInTime: now,
           verificationType: 'Hardware Terminal Biometric',
-          location: 'Terminal Main Gate Kiosk',
+          location: 'Terminal Main Gate',
           deviceName: machineName,
           terminalSn: machineSn,
           workMode: 'On-Site Machine',

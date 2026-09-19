@@ -1,0 +1,165 @@
+// =====================================================================
+// Modern SaaS Design System Tokens (Linear / Vercel Inspired)
+// =====================================================================
+
+// Slate / Zinc Neutral Scale
+$gray-50:  #f8fafc !default;
+$gray-100: #f1f5f9 !default;
+$gray-200: #e2e8f0 !default;
+$gray-300: #cbd5e1 !default;
+$gray-400: #94a3b8 !default;
+$gray-500: #64748b !default;
+$gray-600: #475569 !default;
+$gray-700: #334155 !default;
+$gray-800: #1e293b !default;
+$gray-900: #0f172a !default;
+$gray-950: #020617 !default;
+
+// Semantic Accent Colors (Vibrant yet Refined)
+$indigo:   #6366f1 !default;
+$indigo-dark: #4f46e5 !default;
+$indigo-light: #818cf8 !default;
+$emerald:  #10b981 !default;
+$sky:      #0ea5e9 !default;
+$amber:    #f59e0b !default;
+$rose:     #ef4444 !default;
+$purple:   #8b5cf6 !default;
+
+$primary:   $indigo !default;
+$secondary: $gray-100 !default;
+$success:   $emerald !default;
+$info:      $sky !default;
+$warning:   $amber !default;
+$danger:    $rose !default;
+$light:     $gray-50 !default;
+$dark:      $gray-900 !default;
+
+// Body & Typography
+$font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !default;
+$font-family-code: 'JetBrains Mono', 'Fira Code', monospace !default;
+
+$font-size-root: null !default;
+$font-size-base: 0.9375rem !default; // 15px crisp modern SaaS default
+$font-size-sm:   0.8125rem !default; // 13px
+$font-size-lg:   1.125rem !default;  // 18px
+$font-xs:        0.75rem !default;   // 12px
+
+$body-bg:          #fafafa !default;
+$body-color:       $gray-700 !default;
+$headings-color:   $gray-900 !default;
+$headings-font-weight: 700 !default;
+
+$h1-font-size: $font-size-base * 2.25 !default;
+$h2-font-size: $font-size-base * 1.85 !default;
+$h3-font-size: $font-size-base * 1.5 !default;
+$h4-font-size: $font-size-base * 1.25 !default;
+$h5-font-size: $font-size-base * 1.1 !default;
+$h6-font-size: $font-size-base !default;
+
+// Borders & Radii (Linear clean geometry instead of excessive pills)
+$border-color:             $gray-200 !default;
+$border-color-translucent: rgba($gray-900, 0.08) !default;
+$border-width:             1px !default;
+
+$border-radius:     0.5rem !default;   // 8px standard
+$border-radius-sm:  0.375rem !default; // 6px
+$border-radius-lg:  0.75rem !default;  // 12px
+$border-radius-xl:  1rem !default;     // 16px
+$border-radius-xxl: 1.25rem !default;  // 20px
+$border-radius-pill: 9999px !default;
+
+// Buttons & Controls
+$btn-border-radius:    0.5rem !default;
+$btn-border-radius-sm: 0.375rem !default;
+$btn-border-radius-lg: 0.625rem !default;
+$btn-font-weight:      600 !default;
+$btn-font-size:        0.875rem !default;
+$btn-padding-y:        0.5rem !default;
+$btn-padding-x:        0.95rem !default;
+
+$input-border-radius:    0.5rem !default;
+$input-border-radius-sm: 0.375rem !default;
+$input-border-radius-lg: 0.625rem !default;
+$input-btn-font-size:    0.875rem !default;
+$input-btn-padding-y:    0.5rem !default;
+$input-btn-padding-x:    0.85rem !default;
+$input-border-color:     $gray-200 !default;
+$input-focus-border-color: $indigo !default;
+$input-focus-box-shadow: 0 0 0 3px rgba($indigo, 0.12) !default;
+
+// Links
+$link-color:            $gray-700 !default;
+$link-hover-color:      $primary !default;
+$link-decoration:       none !default;
+$link-hover-decoration: none !default;
+
+// Badges
+$badge-font-size:   0.75rem !default;
+$badge-font-weight: 600 !default;
+$badge-padding-y:   0.3em !default;
+$badge-padding-x:   0.65em !default;
+
+// Cards
+$card-bg:                  #ffffff !default;
+$card-border-color:        $gray-200 !default;
+$card-border-radius:       $border-radius-lg !default;
+$card-box-shadow:          0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !default;
+$card-spacer-y:            1.25rem !default;
+$card-spacer-x:            1.25rem !default;
+
+// Tables
+$table-border-color:       $gray-200 !default;
+$table-th-font-weight:     600 !default;
+$table-cell-padding-y:     0.75rem !default;
+$table-cell-padding-x:     1rem !default;
+
+// Modals
+$modal-content-bg:           #ffffff !default;
+$modal-content-border-color: $gray-200 !default;
+$modal-content-border-radius: $border-radius-xl !default;
+$modal-content-box-shadow-xs: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !default;
+$modal-backdrop-bg:          $gray-950 !default;
+$modal-backdrop-opacity:     0.5 !default;
+
+// Navbars & Pills
+$navbar-nav-link-padding-x: 0.75rem !default;
+$nav-pills-link-active-bg:  $primary !default;
+$nav-link-font-size:        0.875rem !default;
+$nav-link-font-weight:      500 !default;
+
+// Spacers
+$spacer: 1rem !default;
+$spacers: (
+  0: 0,
+  1: $spacer * 0.25,  // 4px
+  2: $spacer * 0.5,   // 8px
+  3: $spacer * 0.75,  // 12px
+  4: $spacer * 1,     // 16px
+  5: $spacer * 1.25,  // 20px
+  6: $spacer * 1.5,   // 24px
+  7: $spacer * 2,     // 32px
+  8: $spacer * 2.5,   // 40px
+  9: $spacer * 3,     // 48px
+  10: $spacer * 4,    // 64px
+  11: $spacer * 5,    // 80px
+  12: $spacer * 6     // 96px
+) !default;
+
+// Avatars
+$avatar-size-xs:   1.5rem !default;
+$avatar-size-sm:   2rem !default;
+$avatar-size-md:   2.5rem !default;
+$avatar-size-lg:   3rem !default;
+$avatar-size-xl:   4rem !default;
+$avatar-size-xxl:  5.5rem !default;
+$avatar-size-xxxl: 8rem !default;
+
+// Icons
+$icon-size-xxs: 0.875rem !default;
+$icon-size-xs:  1.125rem !default;
+$icon-size-sm:  1.5rem !default;
+$icon-size-md:  2rem !default;
+$icon-size-lg:  2.5rem !default;
+$icon-size-xl:  3rem !default;
+$icon-size-xxl: 4rem !default;
+$icon-size-xxxl: 5rem !default;

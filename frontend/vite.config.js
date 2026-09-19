@@ -7,6 +7,8 @@ import glob from 'fast-glob';
 // Auto-start backend plugin for seamless development
 function autoStartBackendPlugin() {
   let backendProcess = null;
+  const projectRoot = resolve(__dirname, '..');
+  const serverScript = resolve(projectRoot, 'backend/src/server.js');
 
   return {
     name: 'vite-plugin-auto-backend',
@@ -19,10 +21,9 @@ function autoStartBackendPlugin() {
       checkReq.on('error', () => {
         console.log('\n[Backend] 🚀 Auto-starting Background Verification API server on http://localhost:5000...');
         const nodeExecutable = process.execPath;
-        const serverScript = resolve(__dirname, 'backend/src/server.js');
 
         backendProcess = spawn(nodeExecutable, [serverScript], {
-          cwd: __dirname,
+          cwd: projectRoot,
           stdio: 'inherit',
           env: { ...process.env }
         });
@@ -60,13 +61,13 @@ function autoStartBackendPlugin() {
   };
 }
 
-// Grab all HTML files inside frontend/src (including subfolders)
-const htmlFiles = glob.sync('./frontend/src/**/*.html');
+// Grab all HTML files inside src (including subfolders)
+const htmlFiles = glob.sync('./src/**/*.html', { cwd: __dirname });
 
 export default defineConfig({
   plugins: [autoStartBackendPlugin()],
   base: './',
-  root: resolve(__dirname, 'frontend/src'),
+  root: resolve(__dirname, 'src'),
   server: {
     host: true,
     port: 3000,
@@ -92,23 +93,23 @@ export default defineConfig({
       scss: {
         includePaths: [
           resolve(__dirname, 'node_modules'),
-          resolve(__dirname, 'frontend/node_modules')
+          resolve(__dirname, '../node_modules')
         ],
       },
     }
   },
   build: {
-    outDir: resolve(__dirname, 'frontend/dist'),
+    outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
     rollupOptions: {
       input: htmlFiles.length
         ? Object.fromEntries(
             htmlFiles.map(file => [
-              file.replace(/^\.\/frontend\/src\//, '').replace(/\.html$/, ''),
+              file.replace(/^\.\/src\//, '').replace(/\.html$/, ''),
               resolve(__dirname, file),
             ])
           )
-        : resolve(__dirname, 'frontend/src/index.html'),
+        : resolve(__dirname, 'src/index.html'),
       output: {
         chunkFileNames: 'assets/js/[name].js',
         entryFileNames: 'assets/js/[name].js',

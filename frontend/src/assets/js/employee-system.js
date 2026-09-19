@@ -19,7 +19,7 @@ window.alert = function (message) {
     title: isSuccess ? 'Success!' : isError ? 'Error!' : isWarning ? 'Notice' : 'Notification',
     text: message,
     icon: isSuccess ? 'success' : isError ? 'error' : isWarning ? 'warning' : 'info',
-    confirmButtonColor: '#09C82C',
+    confirmButtonColor: '#6366F1',
     customClass: {
       popup: 'rounded-4 shadow-lg border-0',
       confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold'
@@ -463,13 +463,17 @@ export class CompanyAuthStore {
 
   static getActiveCompany() {
     try {
-      const data = localStorage.getItem(this.STORAGE_KEY_ACTIVE);
+      if (!AuthManager.isAdmin()) return null;
+      const data = localStorage.getItem(this.STORAGE_KEY_ACTIVE) || localStorage.getItem('learnhub_active_company');
       if (data) return JSON.parse(data);
-      // Default to first seed company
-      const seeds = this.getSeedCompanies();
-      if (seeds.length > 0) {
-        this.setActiveCompany(seeds[0]);
-        return seeds[0];
+      const user = AuthManager.getUser();
+      if (user) {
+        return {
+          company_name: user.companyName || user.company_name || 'Verified Organization',
+          username: user.username || '',
+          district: user.city || user.district || 'HQ',
+          country: user.country || 'India'
+        };
       }
       return null;
     } catch (e) {
@@ -479,6 +483,7 @@ export class CompanyAuthStore {
 
   static setActiveCompany(company) {
     localStorage.setItem(this.STORAGE_KEY_ACTIVE, JSON.stringify(company));
+    localStorage.setItem('learnhub_active_company', JSON.stringify(company));
   }
 
   static resetCompanyPassword(userOrEmail, newPassword) {
@@ -500,6 +505,9 @@ export class CompanyAuthStore {
 
   static logoutCompany() {
     localStorage.removeItem(this.STORAGE_KEY_ACTIVE);
+    localStorage.removeItem('bg_auth_token');
+    localStorage.removeItem('bg_auth_role');
+    localStorage.removeItem('bg_auth_user');
   }
 }
 
@@ -611,7 +619,7 @@ export class CompanyAuthController {
 
     if (navLoginBtn) {
       navLoginBtn.addEventListener('click', () => {
-        if (window.employeeApp) window.employeeApp.showAttendanceAuthPage();
+        window.location.href = '/login/company/';
       });
     }
 
@@ -670,7 +678,7 @@ export class CompanyAuthController {
               <p class="text-muted text-sm mb-0">Admin token generated successfully.</p>
             </div>`,
             icon: 'success',
-            confirmButtonColor: '#09C82C',
+            confirmButtonColor: '#6366F1',
             confirmButtonText: 'Access Workspace'
           });
 
@@ -752,7 +760,7 @@ export class CompanyAuthController {
               <p class="text-muted text-sm mb-0">Authenticated as ${data.user.username} (${data.user.city || 'HQ'})</p>
             </div>`,
             icon: 'success',
-            confirmButtonColor: '#09C82C',
+            confirmButtonColor: '#6366F1',
             confirmButtonText: 'Open Workspace'
           });
 
@@ -796,13 +804,14 @@ export class CompanyAuthController {
       this.renderActiveCompanyBadge();
       Swal.fire({
         title: 'Signed Out Successfully',
-        text: 'You have signed out. Please sign in to continue.',
+        text: 'You have signed out. Returning to home page.',
         icon: 'info',
         timer: 1500,
         showConfirmButton: false,
         customClass: { popup: 'rounded-4 shadow-lg border-0' }
       });
-      if (window.employeeApp) window.employeeApp.showAttendanceAuthPage();
+      if (window.employeeApp) window.employeeApp.showPublicHome();
+      window.location.href = '/';
     };
 
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
@@ -905,7 +914,7 @@ export class CompanyAuthController {
           inputPlaceholder: 'admin@nexgen.com or admin_nexgen',
           showCancelButton: true,
           confirmButtonText: 'Verify Company',
-          confirmButtonColor: '#09C82C',
+          confirmButtonColor: '#6366F1',
           customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary text-white rounded-pill px-4 py-2 fw-bold', cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold' },
           buttonsStyling: false,
           inputValidator: (val) => {
@@ -937,7 +946,7 @@ export class CompanyAuthController {
               inputPlaceholder: '••••••••',
               showCancelButton: true,
               confirmButtonText: 'Update Password',
-              confirmButtonColor: '#09C82C',
+              confirmButtonColor: '#6366F1',
               customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary text-white rounded-pill px-4 py-2 fw-bold', cancelButton: 'btn btn-outline-secondary rounded-pill px-4 py-2 fw-bold' },
               buttonsStyling: false,
               inputValidator: (val) => {
@@ -951,7 +960,7 @@ export class CompanyAuthController {
                 title: 'Password Updated!',
                 text: `Password for ${matched.company_name} has been reset successfully. You can now sign in with your new password.`,
                 icon: 'success',
-                confirmButtonColor: '#09C82C',
+                confirmButtonColor: '#6366F1',
                 customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary text-white rounded-pill px-4 py-2 fw-bold' },
                 buttonsStyling: false
               });
@@ -977,32 +986,39 @@ export class CompanyAuthController {
     const logoutBtn = document.getElementById('btn-company-logout');
     
     // Navbar Elements
+    const navPublicLinks = document.getElementById('nav-public-links');
+    const navWorkspaceLinks = document.getElementById('nav-workspace-links');
+    const navEmpBtn = document.getElementById('nav-employee-portal-btn');
     const navPill = document.getElementById('nav-logged-in-company-pill');
     const navCompText = document.getElementById('nav-company-name-text');
     const navLoginBtn = document.getElementById('nav-company-login-btn');
 
-    // Post-Login Landing Banner Elements
-    const landingCompName = document.getElementById('landing-company-name-display');
-    const landingCompLocation = document.getElementById('landing-company-location-display');
-    const landingCompAddress = document.getElementById('landing-company-address-display');
-    const landingCompEmail = document.getElementById('landing-company-email-display');
-    const landingCompCountry = document.getElementById('landing-company-country-display');
+    // Post-Login Company Workspace Banner Elements
+    const wsCompName = document.getElementById('ws-company-name-display');
+    const wsCompPill = document.getElementById('ws-company-name-pill');
+    const wsCompLocation = document.getElementById('ws-company-location-display');
+    const wsCompAddress = document.getElementById('ws-company-address-display');
+    const wsCompEmail = document.getElementById('ws-company-email-display');
 
     const comp = CompanyAuthStore.getActiveCompany();
 
-    if (comp) {
+    if (comp && AuthManager.isAdmin()) {
       if (navPill) navPill.classList.remove('d-none');
       if (navCompText) navCompText.textContent = comp.company_name;
       if (navLoginBtn) navLoginBtn.classList.add('d-none');
+      if (navEmpBtn) navEmpBtn.classList.add('d-none');
+      if (navPublicLinks) navPublicLinks.classList.add('d-none');
+      if (navWorkspaceLinks) navWorkspaceLinks.classList.remove('d-none');
 
-      if (landingCompName) landingCompName.textContent = comp.company_name;
-      if (landingCompCountry) landingCompCountry.textContent = comp.country || 'India';
-      if (landingCompLocation) {
+      if (wsCompName) wsCompName.textContent = comp.company_name;
+      if (wsCompPill) wsCompPill.textContent = comp.company_name;
+      if (wsCompLocation) {
         const parts = [comp.district, comp.state, comp.country].filter(Boolean);
-        landingCompLocation.innerHTML = `<i class="ti ti-map-pin me-1"></i>${parts.join(', ') || 'Facility HQ'}`;
+        wsCompLocation.innerHTML = `<i class="ti ti-map-pin me-1"></i>${parts.join(', ') || 'Facility HQ'}`;
       }
-      if (landingCompAddress) landingCompAddress.textContent = comp.company_address || 'Registered Office';
-      if (landingCompEmail) landingCompEmail.innerHTML = `<i class="ti ti-mail me-1"></i>${comp.company_email || comp.username}`;
+      if (wsCompAddress) wsCompAddress.textContent = comp.company_address || 'Registered Office';
+      if (wsCompEmail) wsCompEmail.innerHTML = `<i class="ti ti-mail me-1"></i>${comp.company_email || comp.username}`;
+
       if (badgeContainer) {
         badgeContainer.innerHTML = `
           <span class="badge bg-white text-dark border shadow-sm px-3 py-2 rounded-pill fw-semibold d-flex align-items-center gap-1.5" title="${comp.company_address}">
@@ -1019,6 +1035,9 @@ export class CompanyAuthController {
     } else {
       if (navPill) navPill.classList.add('d-none');
       if (navLoginBtn) navLoginBtn.classList.remove('d-none');
+      if (navEmpBtn) navEmpBtn.classList.remove('d-none');
+      if (navPublicLinks) navPublicLinks.classList.remove('d-none');
+      if (navWorkspaceLinks) navWorkspaceLinks.classList.add('d-none');
 
       if (badgeContainer) badgeContainer.innerHTML = '';
       if (attHeaderCompName) attHeaderCompName.textContent = 'Portal Default';
@@ -1262,7 +1281,8 @@ export class EmployeePortalController {
           showConfirmButton: false,
           customClass: { popup: 'rounded-4 shadow-lg border-0' }
         });
-        if (window.employeeApp) window.employeeApp.showAttendanceAuthPage();
+        if (window.employeeApp) window.employeeApp.showPublicHome();
+        window.location.href = '/';
       });
     }
     
@@ -1304,17 +1324,29 @@ export class EmployeePortalController {
 
     const goToHomeDashboard = () => {
       if (window.employeeApp) {
-        window.employeeApp.showAttendanceAuthPage(false);
+        window.employeeApp.showPublicHome(false);
       }
+    };
+
+    const goToEmployeeDashboard = () => {
+      window._targetEmployeeSubView = null;
+      showSelectionHub();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     if (btnOpenWfh) btnOpenWfh.addEventListener('click', (e) => { e.stopPropagation(); showWfhView(); });
     if (cardOpenWfh) cardOpenWfh.addEventListener('click', () => showWfhView());
     if (btnOpenView) btnOpenView.addEventListener('click', (e) => { e.stopPropagation(); showAttendanceView(); });
     if (cardOpenView) cardOpenView.addEventListener('click', () => showAttendanceView());
-    if (btnBackWfh) btnBackWfh.addEventListener('click', goToHomeDashboard);
-    if (btnBackView) btnBackView.addEventListener('click', goToHomeDashboard);
-    if (btnEmpHubBackToHome) btnEmpHubBackToHome.addEventListener('click', goToHomeDashboard);
+    if (btnBackWfh) btnBackWfh.addEventListener('click', goToEmployeeDashboard);
+    if (btnBackView) btnBackView.addEventListener('click', goToEmployeeDashboard);
+    if (btnEmpHubBackToHome) btnEmpHubBackToHome.addEventListener('click', () => {
+      if (selectionView && selectionView.classList.contains('d-none')) {
+        goToEmployeeDashboard();
+      } else {
+        goToHomeDashboard();
+      }
+    });
     if (btnSwitchToView) btnSwitchToView.addEventListener('click', () => showAttendanceView());
 
     if (refreshBtn) {
@@ -1375,7 +1407,7 @@ export class EmployeePortalController {
                 </div>
               </div>`,
               icon: 'success',
-              confirmButtonColor: '#09C82C'
+              confirmButtonColor: '#6366F1'
             });
             await this.loadMyRecords();
             await this.loadAnnualSummary();
@@ -1442,7 +1474,13 @@ export class EmployeePortalController {
       }
     }
 
-    // Show target sub-view or default Selection Hub
+    // Check stored sub-view preference from dedicated login
+    const storedTarget = localStorage.getItem('bg_employee_target_subview');
+    if (storedTarget) {
+      window._targetEmployeeSubView = storedTarget;
+      localStorage.removeItem('bg_employee_target_subview');
+    }
+
     if (window._targetEmployeeSubView === 'wfh') {
       this.showWfhView();
     } else if (window._targetEmployeeSubView === 'attendance') {
@@ -1710,8 +1748,8 @@ export class AttendanceStore {
       check_out: record.check_out || '',
       duration: record.duration || (record.check_out ? this.calculateWorkDuration(checkInTime, record.check_out) : 'Active'),
       status: record.status || 'Present',
-      work_mode: record.work_mode || 'On-Site Kiosk',
-      location: record.location || 'Front Desk Kiosk',
+      work_mode: record.work_mode || 'On-Site Scanner',
+      location: record.location || 'Front Desk',
       verification_type: record.verification_type || 'Barcode Scanner',
       notes: record.notes || ''
     };
@@ -2012,7 +2050,7 @@ export class HardwareDeviceController {
         id: `dev_${Date.now()}`,
         brand: brand || 'ZKTeco',
         model: model || 'ProCapture-X Multi-Biometric',
-        deviceType: 'Facial & Optical Fingerprint Kiosk',
+        deviceType: 'Facial & Optical Fingerprint Terminal',
         serialNumber: `SN-${(brand || 'ZK').substring(0, 2).toUpperCase()}-2026-X8892`,
         ipAddress: '192.168.1.201',
         port: 4370,
@@ -2043,7 +2081,7 @@ export class HardwareDeviceController {
     if (brandBadge) brandBadge.textContent = device.brand || 'Hardware Terminal';
     if (snEl) snEl.textContent = `SN: ${device.serialNumber || 'SN-ZK2026-8892'}`;
     if (modelEl) modelEl.textContent = device.model || 'Attendance Terminal';
-    if (typeEl) typeEl.textContent = device.deviceType || 'Biometric & Optical Attendance Kiosk';
+    if (typeEl) typeEl.textContent = device.deviceType || 'Biometric & Optical Attendance Terminal';
     if (ipEl) ipEl.textContent = `${device.ipAddress || '192.168.1.201'}:${device.port || 4370}`;
     if (protoEl) protoEl.textContent = device.protocol || 'TCP / ADMS Push';
     if (compEl) compEl.textContent = compName;
@@ -2132,7 +2170,7 @@ export class HardwareDeviceController {
           </div>
         `,
         icon: 'success',
-        confirmButtonColor: '#09C82C',
+        confirmButtonColor: '#6366F1',
         confirmButtonText: 'Great, Ready to Scan!',
         customClass: {
           popup: 'rounded-4 shadow-lg border-0',
@@ -2336,7 +2374,7 @@ export class HardwareDeviceController {
 }
 
 /**
- * Attendance Controller — Camera-Based Barcode Kiosk & Live Activity Engine
+ * Attendance Controller — Camera-Based Barcode Scanner & Live Activity Engine
  */
 export class AttendanceController {
   static currentFilter = 'ALL';
@@ -2352,7 +2390,7 @@ export class AttendanceController {
     this.renderAttendanceStats();
     this.renderAttendanceTable();
     this.attachFilterListeners();
-    this.initKioskScanner();
+    this.initScanner();
     this.initSocketConnection();
     this.initShiftSettings();
     this.initWFHCheckIn();
@@ -2363,15 +2401,15 @@ export class AttendanceController {
   static activeCameraId = null;
 
   // =========================================================================
-  // KIOSK WEBCAM SCANNER (Html5Qrcode Continuous Barcode/QR Reader)
+  // WEBCAM SCANNER (Html5Qrcode Continuous Barcode/QR Reader)
   // =========================================================================
-  static async initKioskScanner() {
-    const scannerElement = document.getElementById('attendance-kiosk-scanner');
+  static async initScanner() {
+    const scannerElement = document.getElementById('attendance-scanner');
     if (!scannerElement) return;
 
-    const toggleCameraBtn = document.getElementById('btn-toggle-kiosk-camera');
-    const cameraSelect = document.getElementById('kiosk-camera-select');
-    const manualInput = document.getElementById('manual-kiosk-barcode-input');
+    const toggleCameraBtn = document.getElementById('btn-toggle-camera');
+    const cameraSelect = document.getElementById('scanner-camera-select');
+    const manualInput = document.getElementById('manual-barcode-input');
     const submitManualBtn = document.getElementById('btn-submit-manual-barcode');
 
     // Manual Barcode Input Trigger
@@ -2422,11 +2460,11 @@ export class AttendanceController {
   }
 
   static async startCamera(preferredCameraId = null) {
-    const scannerElement = document.getElementById('attendance-kiosk-scanner');
+    const scannerElement = document.getElementById('attendance-scanner');
     const statusBadge = document.getElementById('hardware-connection-badge');
-    const cameraBtnText = document.getElementById('kiosk-camera-btn-text');
-    const cameraSelect = document.getElementById('kiosk-camera-select');
-    const permissionAlert = document.getElementById('kiosk-camera-permission-alert');
+    const cameraBtnText = document.getElementById('camera-btn-text');
+    const cameraSelect = document.getElementById('scanner-camera-select');
+    const permissionAlert = document.getElementById('camera-permission-alert');
     if (!scannerElement) return;
 
     try {
@@ -2465,7 +2503,7 @@ export class AttendanceController {
         console.warn('Could not enumerate cameras:', enumErr.message);
       }
 
-      this.html5QrScanner = new Html5Qrcode('attendance-kiosk-scanner', {
+      this.html5QrScanner = new Html5Qrcode('attendance-scanner', {
         formatsToSupport: [
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39,
@@ -2500,7 +2538,7 @@ export class AttendanceController {
       if (permissionAlert) permissionAlert.classList.add('d-none');
       if (statusBadge) statusBadge.textContent = 'Optical Scanner Active';
       if (cameraBtnText) cameraBtnText.textContent = 'Pause Camera';
-      console.log('📷 Attendance Barcode Kiosk camera stream active');
+      console.log('📷 Attendance Barcode Scanner camera stream active');
 
     } catch (err) {
       console.warn('Error starting primary camera, attempting environment/fallback:', err.message);
@@ -2532,7 +2570,7 @@ export class AttendanceController {
       } catch (e) {}
       this.isCameraRunning = false;
       const statusBadge = document.getElementById('hardware-connection-badge');
-      const cameraBtnText = document.getElementById('kiosk-camera-btn-text');
+      const cameraBtnText = document.getElementById('camera-btn-text');
       if (statusBadge) statusBadge.textContent = 'Camera Paused';
       if (cameraBtnText) cameraBtnText.textContent = 'Start Camera';
     }
@@ -2551,7 +2589,7 @@ export class AttendanceController {
     }
 
     this.isScanningLocked = true;
-    console.log(`[KIOSK] Barcode scanned: "${code}". Debounce active.`);
+    console.log(`[SCANNER] Barcode scanned: "${code}". Debounce active.`);
 
     try {
       const response = await fetch('http://localhost:5000/api/v1/attendance/barcode-punch', {
@@ -2559,7 +2597,7 @@ export class AttendanceController {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employee_code: code,
-          location: 'Front Desk Kiosk'
+          location: 'Front Desk'
         })
       });
 
@@ -2593,8 +2631,8 @@ export class AttendanceController {
           check_out: record.checkOutTime ? new Date(record.checkOutTime).toTimeString().split(' ')[0].substring(0, 5) : '',
           duration: record.duration || 'Active',
           status: record.status || 'Present',
-          work_mode: 'On-Site Kiosk',
-          location: 'Front Desk Kiosk',
+          work_mode: 'On-Site Scanner',
+          location: 'Front Desk',
           verification_type: 'Barcode Scanner'
         });
 
@@ -2677,7 +2715,7 @@ export class AttendanceController {
       }
 
     } catch (err) {
-      console.warn('[KIOSK] Backend API unreachable, executing offline resilient punch:', err.message);
+      console.warn('[SCANNER] Backend API unreachable, executing offline resilient punch:', err.message);
 
       // Offline Resilience: Look up employee in local store
       const employees = EmployeeStore.getEmployees();
@@ -2753,8 +2791,8 @@ export class AttendanceController {
           check_out: action === 'Check-Out' ? nowTimeStr : (existingRecord ? existingRecord.check_out : ''),
           duration: action === 'Check-Out' ? 'Completed' : 'Active',
           status: 'Present',
-          work_mode: 'On-Site Kiosk',
-          location: 'Front Desk Kiosk',
+          work_mode: 'On-Site Scanner',
+          location: 'Front Desk',
           verification_type: 'Barcode Scanner'
         });
 
@@ -2812,7 +2850,7 @@ export class AttendanceController {
 
     // 4. Auto-Cooldown: Wait 3 seconds, count down, then unlock scanner
     let countdown = 3;
-    const timerEl = document.getElementById('kiosk-cooldown-timer');
+    const timerEl = document.getElementById('scanner-cooldown-timer');
     const interval = setInterval(() => {
       countdown--;
       if (timerEl) timerEl.textContent = `Resuming in ${countdown}s...`;
@@ -2820,18 +2858,18 @@ export class AttendanceController {
         clearInterval(interval);
         this.hideCooldownOverlay();
         this.isScanningLocked = false;
-        console.log('[KIOSK] Cooldown complete. Scanner ready for next employee.');
+        console.log('[SCANNER] Cooldown complete. Scanner ready for next employee.');
       }
     }, 1000);
   }
 
   static showCooldownOverlay({ isSuccess, action, name, code, dept, message }) {
-    const overlay = document.getElementById('kiosk-cooldown-overlay');
-    const icon = document.getElementById('kiosk-cooldown-icon');
-    const nameEl = document.getElementById('kiosk-cooldown-name');
-    const msgEl = document.getElementById('kiosk-cooldown-message');
-    const badgeEl = document.getElementById('kiosk-cooldown-badge');
-    const timerEl = document.getElementById('kiosk-cooldown-timer');
+    const overlay = document.getElementById('scanner-cooldown-overlay');
+    const icon = document.getElementById('scanner-cooldown-icon');
+    const nameEl = document.getElementById('scanner-cooldown-name');
+    const msgEl = document.getElementById('scanner-cooldown-message');
+    const badgeEl = document.getElementById('scanner-cooldown-badge');
+    const timerEl = document.getElementById('scanner-cooldown-timer');
     if (!overlay) return;
 
     overlay.classList.remove('d-none');
@@ -2855,7 +2893,7 @@ export class AttendanceController {
   }
 
   static hideCooldownOverlay() {
-    const overlay = document.getElementById('kiosk-cooldown-overlay');
+    const overlay = document.getElementById('scanner-cooldown-overlay');
     if (overlay) {
       overlay.classList.remove('d-flex');
       overlay.classList.add('d-none');
@@ -2875,7 +2913,7 @@ export class AttendanceController {
       }
 
       socket.on('connect', () => {
-        console.log('⚡ Socket.IO connected to Attendance Kiosk Gateway');
+        console.log('⚡ Socket.IO connected to Attendance Gateway');
         this.socketConnected = true;
         const hwBadge = document.getElementById('hardware-connection-badge');
         if (hwBadge) hwBadge.textContent = 'Optical Scanner & Live WebSocket Active';
@@ -2914,8 +2952,8 @@ export class AttendanceController {
             check_out: record.check_out,
             duration: record.duration,
             status: record.status || 'Present',
-            work_mode: record.work_mode || 'On-Site Kiosk',
-            location: record.location || 'Front Desk Kiosk',
+            work_mode: record.work_mode || 'On-Site Scanner',
+            location: record.location || 'Front Desk',
             verification_type: 'Barcode Scanner'
           });
         }
@@ -2966,8 +3004,8 @@ export class AttendanceController {
             check_out: r.check_out || '',
             duration: r.duration || 'Active',
             status: r.status || 'Present',
-            work_mode: r.work_mode || 'On-Site Kiosk',
-            location: r.location || 'Front Desk Kiosk',
+            work_mode: r.work_mode || 'On-Site Scanner',
+            location: r.location || 'Front Desk',
             verification_type: r.verification_type || 'Barcode Scanner',
             notes: r.notes || ''
           }));
@@ -3019,8 +3057,8 @@ export class AttendanceController {
       streamContainer.innerHTML = `
         <div class="text-center py-5 text-white-50 my-auto">
           <i class="ti ti-camera-off opacity-50 display-6 d-block mb-2"></i>
-          <p class="mb-0 text-xs">Waiting for live scans from camera kiosk...</p>
-          <span class="text-muted text-xs opacity-75">Scans made in front of the kiosk will pop up here instantly.</span>
+          <p class="mb-0 text-xs">Waiting for live scans from camera scanner...</p>
+          <span class="text-muted text-xs opacity-75">Scans made in front of the scanner will pop up here instantly.</span>
         </div>`;
       if (streamCountBadge) streamCountBadge.textContent = '0 scans today';
       return;
@@ -3055,7 +3093,7 @@ export class AttendanceController {
             <span class="badge ${actionBadgeClass} rounded-pill px-2 py-0.5 fw-bold" style="font-size: 10px;">
               ${p.action || 'Scan'} • ${pTime}
             </span>
-            <span class="d-block text-white-50 mt-0.5" style="font-size: 9px;"><i class="ti ti-camera me-1"></i>Camera Kiosk</span>
+            <span class="d-block text-white-50 mt-0.5" style="font-size: 9px;"><i class="ti ti-camera me-1"></i>Camera Scanner</span>
           </div>
         </div>`;
     }).join('');
@@ -3100,7 +3138,7 @@ export class AttendanceController {
           <td colspan="9" class="text-center py-5">
             <i class="ti ti-camera-off display-6 text-muted opacity-50 d-block mb-2"></i>
             <p class="fw-semibold text-muted mb-1">No attendance records logged today</p>
-            <span class="text-xs text-muted">Hold an employee barcode / QR badge to the camera kiosk to record Check-In.</span>
+            <span class="text-xs text-muted">Hold an employee barcode / QR badge to the camera scanner to record Check-In.</span>
           </td>
         </tr>
       `;
@@ -3131,9 +3169,15 @@ export class AttendanceController {
             </span>
           </td>
           <td><span class="badge ${badgeClass} px-3 py-1.5 rounded-pill fw-bold text-xs">${l.status}</span></td>
-          <td>
-            <button class="btn btn-sm btn-outline-danger rounded-pill delete-att-btn" data-id="${l.id}">
-              <i class="ti ti-trash"></i>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-danger rounded-circle delete-att-btn d-inline-flex align-items-center justify-content-center p-0" style="width: 32px; height: 32px;" data-id="${l.id}" title="Delete Record">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7l16 0" />
+                <path d="M10 11l0 6" />
+                <path d="M14 11l0 6" />
+                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+              </svg>
             </button>
           </td>
         </tr>
@@ -3159,8 +3203,8 @@ export class AttendanceController {
     const filterBtns = document.querySelectorAll('#attendance-filter-group button');
     filterBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
-        filterBtns.forEach(b => b.classList.remove('active', 'bg-info', 'text-white'));
-        e.currentTarget.classList.add('active', 'bg-info', 'text-white');
+        filterBtns.forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
         this.currentFilter = e.currentTarget.dataset.filter || 'ALL';
         this.renderAttendanceTable();
       });
@@ -3182,6 +3226,25 @@ export class AttendanceController {
     const graceInput = document.getElementById('input-shift-grace-minutes');
     const cutoffPreview = document.getElementById('preview-shift-cutoff-time');
     const companyInput = document.getElementById('input-shift-company');
+    const modalEl = document.getElementById('modal-shift-settings');
+
+    // Scope elements
+    const scopeRadios = document.querySelectorAll('input[name="shift-scope-toggle"]');
+    const sectionCompany = document.getElementById('section-scope-company');
+    const sectionEmployee = document.getElementById('section-scope-employee');
+    const btnSaveText = document.getElementById('btn-save-shift-text');
+
+    // Employee specific fields
+    const empSelect = document.getElementById('select-shift-employee');
+    const empNameInput = document.getElementById('input-shift-emp-name');
+    const empIdInput = document.getElementById('input-shift-emp-id');
+    const empLookupBtn = document.getElementById('btn-shift-lookup-emp');
+    const empPreviewCard = document.getElementById('card-shift-emp-preview');
+    const empPreviewName = document.getElementById('shift-preview-emp-name');
+    const empPreviewDept = document.getElementById('shift-preview-emp-dept');
+    const empPreviewBadge = document.getElementById('shift-preview-current-badge');
+    const workmodeRadios = document.querySelectorAll('input[name="input-employee-work-mode"]');
+    const workmodeHint = document.getElementById('workmode-hint-text');
 
     const updateCutoffPreview = () => {
       if (!startInput || !graceInput || !cutoffPreview) return;
@@ -3198,16 +3261,250 @@ export class AttendanceController {
     if (startInput) startInput.addEventListener('input', updateCutoffPreview);
     if (graceInput) graceInput.addEventListener('input', updateCutoffPreview);
 
-    // Fetch active settings from server
+    // Toggle between Company-Wide and Specific Employee scopes
+    const handleScopeChange = () => {
+      const selectedScope = document.querySelector('input[name="shift-scope-toggle"]:checked')?.value || 'company';
+      if (selectedScope === 'employee') {
+        if (sectionCompany) sectionCompany.classList.add('d-none');
+        if (sectionEmployee) sectionEmployee.classList.remove('d-none');
+        if (btnSaveText) btnSaveText.textContent = 'Save Employee Work Mode';
+        if (empIdInput) empIdInput.required = true;
+        this.populateShiftSettingsEmployees();
+      } else {
+        if (sectionCompany) sectionCompany.classList.remove('d-none');
+        if (sectionEmployee) sectionEmployee.classList.add('d-none');
+        if (btnSaveText) btnSaveText.textContent = 'Save Configuration';
+        if (empIdInput) empIdInput.required = false;
+      }
+    };
+
+    scopeRadios.forEach(radio => radio.addEventListener('change', handleScopeChange));
+
+    // Handle Employee Selection from Dropdown
+    if (empSelect) {
+      empSelect.addEventListener('change', () => {
+        const selectedOpt = empSelect.options[empSelect.selectedIndex];
+        if (!selectedOpt || !selectedOpt.value) {
+          if (empPreviewCard) empPreviewCard.classList.add('d-none');
+          return;
+        }
+
+        const name = selectedOpt.dataset.name || '';
+        const code = selectedOpt.dataset.code || selectedOpt.value;
+        const dept = selectedOpt.dataset.dept || 'Department';
+        const role = selectedOpt.dataset.role || 'Employee';
+        const workMode = selectedOpt.dataset.workMode || 'Office';
+
+        if (empNameInput) empNameInput.value = name;
+        if (empIdInput) empIdInput.value = code;
+
+        // Update preview card
+        if (empPreviewCard) empPreviewCard.classList.remove('d-none');
+        if (empPreviewName) empPreviewName.textContent = name;
+        if (empPreviewDept) empPreviewDept.textContent = `${code} • ${dept} • ${role}`;
+        if (empPreviewBadge) {
+          const isRemote = workMode === 'Remote';
+          empPreviewBadge.className = isRemote
+            ? 'badge bg-info text-white rounded-pill px-2.5 py-1 text-2xs fw-bold'
+            : 'badge bg-secondary text-white rounded-pill px-2.5 py-1 text-2xs fw-bold';
+          empPreviewBadge.innerHTML = isRemote
+            ? '<i class="ti ti-laptop me-1"></i> Current: Remote (WFH)'
+            : '<i class="ti ti-building me-1"></i> Current: Office (On-Site)';
+        }
+
+        // Set radio matching current work mode
+        const targetRadio = document.querySelector(`input[name="input-employee-work-mode"][value="${workMode}"]`);
+        if (targetRadio) targetRadio.checked = true;
+        updateWorkmodeHint(workMode);
+      });
+    }
+
+    // Helper to update workmode hint description
+    const updateWorkmodeHint = (mode) => {
+      if (!workmodeHint) return;
+      if (mode === 'Remote') {
+        workmodeHint.innerHTML = '<strong>Remote (WFH) Mode:</strong> Employee can punch in virtually from the WFH web portal without on-site restrictions.';
+      } else {
+        workmodeHint.innerHTML = '<strong>Office Mode:</strong> Assigned to on-site barcode scanner. Switching to <strong>Remote (WFH)</strong> enables web portal punch-in.';
+      }
+    };
+
+    workmodeRadios.forEach(r => {
+      r.addEventListener('change', () => {
+        updateWorkmodeHint(r.value);
+      });
+    });
+
+    // Handle Manual Emp ID Lookup
+    const performEmpLookup = async () => {
+      const code = empIdInput ? empIdInput.value.trim() : '';
+      if (!code) return;
+
+      try {
+        const res = await fetch(`http://localhost:5000/api/v1/persons/verify/${encodeURIComponent(code)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            const emp = data.data;
+            if (empNameInput) empNameInput.value = emp.name;
+            if (empIdInput) empIdInput.value = emp.employee_code || code;
+
+            if (empPreviewCard) empPreviewCard.classList.remove('d-none');
+            if (empPreviewName) empPreviewName.textContent = emp.name;
+            if (empPreviewDept) empPreviewDept.textContent = `${emp.employee_code} • ${emp.department || 'Engineering'} • ${emp.role || 'Employee'}`;
+            if (empPreviewBadge) {
+              const isRemote = emp.work_location === 'Remote';
+              empPreviewBadge.className = isRemote
+                ? 'badge bg-info text-white rounded-pill px-2.5 py-1 text-2xs fw-bold'
+                : 'badge bg-secondary text-white rounded-pill px-2.5 py-1 text-2xs fw-bold';
+              empPreviewBadge.innerHTML = isRemote
+                ? '<i class="ti ti-laptop me-1"></i> Current: Remote (WFH)'
+                : '<i class="ti ti-building me-1"></i> Current: Office (On-Site)';
+            }
+
+            const targetRadio = document.querySelector(`input[name="input-employee-work-mode"][value="${emp.work_location || 'Office'}"]`);
+            if (targetRadio) targetRadio.checked = true;
+            updateWorkmodeHint(emp.work_location || 'Office');
+
+            // Also select option in dropdown if present
+            if (empSelect) {
+              for (let i = 0; i < empSelect.options.length; i++) {
+                if (empSelect.options[i].value === emp.employee_code || empSelect.options[i].value === emp.id) {
+                  empSelect.selectedIndex = i;
+                  break;
+                }
+              }
+            }
+            return;
+          }
+        }
+        Swal.fire({
+          title: 'Employee Not Found',
+          text: `No employee record matched Emp ID "${code}".`,
+          icon: 'warning'
+        });
+      } catch (err) {
+        console.error('Error looking up employee for shift settings:', err);
+      }
+    };
+
+    if (empLookupBtn) empLookupBtn.addEventListener('click', performEmpLookup);
+    if (empIdInput) {
+      empIdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          performEmpLookup();
+        }
+      });
+    }
+
+    // Populate dropdown whenever modal opens
+    if (modalEl) {
+      modalEl.addEventListener('show.bs.modal', async () => {
+        await this.populateShiftSettingsEmployees();
+      });
+    }
+
+    // Fetch active company settings from server
     await this.fetchAndRenderShiftSettings();
 
+    // Form Submit Handler
     if (shiftForm) {
       shiftForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const activeCompany = CompanyAuthController.getActiveCompany();
-        const compName = (activeCompany && activeCompany.company_name) ? activeCompany.company_name : 'NexGen Cloud Systems';
+        const selectedScope = document.querySelector('input[name="shift-scope-toggle"]:checked')?.value || 'company';
         const startTime = (startInput.value ? startInput.value : '09:00') + ':00';
         const graceMinutes = parseInt(graceInput.value, 10) || 0;
+
+        // Case A: Specific Employee Work Mode & Shift Configuration
+        if (selectedScope === 'employee') {
+          const empCode = empIdInput ? empIdInput.value.trim() : '';
+          const empName = empNameInput ? empNameInput.value.trim() : '';
+          const selectedWorkMode = document.querySelector('input[name="input-employee-work-mode"]:checked')?.value || 'Office';
+
+          if (!empCode) {
+            Swal.fire({
+              title: 'Emp ID Required',
+              text: 'Please select or enter a valid Employee ID.',
+              icon: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const res = await fetch('http://localhost:5000/api/v1/persons/work-mode', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                employee_code: empCode,
+                work_mode: selectedWorkMode,
+                shift_start_time: startTime,
+                grace_period_minutes: graceMinutes
+              })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+              // Close modal
+              if (modalEl && window.bootstrap) {
+                const modalInst = bootstrap.Modal.getInstance(modalEl);
+                if (modalInst) modalInst.hide();
+              }
+
+              // Update WFH employee dropdown and any open cards
+              await this.populateWFHEmployeeDropdown();
+              await this.populateShiftSettingsEmployees();
+
+              // If the WFH checkin modal is showing this employee, refresh their preview
+              const wfhPreviewName = document.getElementById('wfh-preview-name');
+              if (wfhPreviewName && wfhPreviewName.textContent === data.data.name) {
+                const isRemote = data.data.work_location === 'Remote';
+                const locBadge = document.getElementById('wfh-preview-location-badge');
+                const officeWarning = document.getElementById('wfh-office-employee-warning');
+                if (locBadge) {
+                  locBadge.innerHTML = isRemote
+                    ? `<span class="badge bg-info text-white rounded-pill px-3 py-1 text-xs fw-bold"><i class="ti ti-laptop me-1"></i> Remote (WFH)</span>`
+                    : `<span class="badge bg-secondary text-white rounded-pill px-3 py-1 text-xs fw-bold"><i class="ti ti-building me-1"></i> Office (On-Site)</span>`;
+                }
+                if (officeWarning) {
+                  if (!isRemote) {
+                    officeWarning.classList.remove('d-none');
+                    officeWarning.classList.add('d-flex');
+                  } else {
+                    officeWarning.classList.add('d-none');
+                    officeWarning.classList.remove('d-flex');
+                  }
+                }
+              }
+
+              const modeLabel = selectedWorkMode === 'Remote' ? '💻 Remote (WFH Virtual Check-In)' : '🏢 Office (On-Site Scanner)';
+              Swal.fire({
+                title: 'Employee Work Mode Updated',
+                html: `Successfully updated work mode for <strong>${data.data.name}</strong> (<code>${data.data.employee_code}</code>) to <strong>${modeLabel}</strong>.`,
+                icon: 'success',
+                confirmButtonColor: '#6366F1'
+              });
+            } else {
+              Swal.fire({
+                title: 'Update Failed',
+                text: data.message || 'Could not update employee work mode.',
+                icon: 'error'
+              });
+            }
+          } catch (err) {
+            console.error('Error updating employee work mode:', err);
+            Swal.fire({
+              title: 'Error',
+              text: 'Network error updating employee work mode.',
+              icon: 'error'
+            });
+          }
+          return;
+        }
+
+        // Case B: Company-Wide Shift Policy Configuration
+        const activeCompany = CompanyAuthController.getActiveCompany();
+        const compName = (activeCompany && activeCompany.company_name) ? activeCompany.company_name : 'NexGen Cloud Systems';
 
         try {
           const res = await fetch('http://localhost:5000/api/v1/attendance/settings', {
@@ -3223,23 +3520,52 @@ export class AttendanceController {
           if (data.success) {
             this.currentShiftConfig = data.data;
             this.renderShiftStatusBadge();
-            // Close modal using bootstrap modal instance
-            const modalEl = document.getElementById('modal-shift-settings');
             if (modalEl && window.bootstrap) {
               const modalInst = bootstrap.Modal.getInstance(modalEl);
               if (modalInst) modalInst.hide();
             }
             Swal.fire({
-              title: 'Shift Configuration Saved',
+              title: 'Company Shift Policy Saved',
               text: `Shift start set to ${startTime.substring(0, 5)} with ${graceMinutes} min grace (Cut-off: ${data.data.cut_off_time}).`,
               icon: 'success',
-              confirmButtonColor: '#09C82C'
+              confirmButtonColor: '#6366F1'
             });
           }
         } catch (err) {
           console.error('Error saving shift settings:', err);
         }
       });
+    }
+  }
+
+  static async populateShiftSettingsEmployees() {
+    const empSelect = document.getElementById('select-shift-employee');
+    if (!empSelect) return;
+
+    try {
+      const res = await fetch('http://localhost:5000/api/v1/persons');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          const employees = data.data;
+          const currentVal = empSelect.value;
+          empSelect.innerHTML = '<option value="">-- Choose employee to change work mode --</option>' +
+            employees.map(e => `
+              <option value="${e.employee_code || e.id}"
+                      data-id="${e.id}"
+                      data-code="${e.employee_code || `EMP-${e.id}`}"
+                      data-name="${e.name || ''}"
+                      data-dept="${e.department || ''}"
+                      data-role="${e.role || ''}"
+                      data-work-mode="${e.work_location || 'Office'}">
+                ${e.name} (${e.employee_code || `EMP-${e.id}`}) • ${e.work_location === 'Remote' ? '💻 Remote (WFH)' : '🏢 Office'}
+              </option>
+            `).join('');
+          if (currentVal) empSelect.value = currentVal;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not populate shift settings employee dropdown:', e);
     }
   }
 
@@ -3504,7 +3830,7 @@ export class AttendanceController {
             </div>
           </div>`,
           icon: 'success',
-          confirmButtonColor: '#09C82C'
+          confirmButtonColor: '#6366F1'
         });
 
         // Refresh stats and directory table
@@ -3844,7 +4170,7 @@ export class EmployeeFormManager {
               title: 'File Too Large',
               text: 'Photo size must be less than 5MB.',
               icon: 'warning',
-              confirmButtonColor: '#09C82C',
+              confirmButtonColor: '#6366F1',
               customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
               buttonsStyling: false
             });
@@ -3988,7 +4314,7 @@ export class EmployeeFormManager {
             <div class="col-md-6">
               <label class="form-label fw-medium text-dark">Work Location / Shift Mode <span class="text-danger">*</span></label>
               <select class="form-select exp-work-location" required>
-                <option value="Office" ${(!data.work_location || data.work_location === 'Office') ? 'selected' : ''}>🏢 Office (On-Site Kiosk Scanner)</option>
+                <option value="Office" ${(!data.work_location || data.work_location === 'Office') ? 'selected' : ''}>🏢 Office (On-Site Scanner)</option>
                 <option value="Remote" ${data.work_location === 'Remote' ? 'selected' : ''}>💻 Remote (WFH Virtual Check-In)</option>
               </select>
             </div>
@@ -4352,7 +4678,7 @@ export class EmployeeFormManager {
         title: 'Demographics Validation Error',
         text: errorMsg,
         icon: 'warning',
-        confirmButtonColor: '#09C82C',
+        confirmButtonColor: '#6366F1',
         customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
         buttonsStyling: false
       });
@@ -4522,7 +4848,7 @@ export class EmployeeFormManager {
         title: 'Employment History Error',
         text: expValidationError,
         icon: 'warning',
-        confirmButtonColor: '#09C82C',
+        confirmButtonColor: '#6366F1',
         customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
         buttonsStyling: false
       });
@@ -4564,7 +4890,7 @@ export class EmployeeFormManager {
       title: 'Employee Record Saved!',
       html: `Generated Barcode Hash:<br><code class="fs-6 text-primary fw-bold mt-2 d-inline-block">${result.employee.barcode_hash}</code><br><span class="badge bg-success-subtle text-success mt-2">Saved to PostgreSQL Database</span>`,
       icon: 'success',
-      confirmButtonColor: '#09C82C',
+      confirmButtonColor: '#6366F1',
       confirmButtonText: 'Awesome!',
       customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
       buttonsStyling: false
@@ -4724,7 +5050,7 @@ export class BarcodeBadgeManager {
             <button class="btn btn-primary btn-sm rounded-pill download-barcode-btn">
               <i class="ti ti-download me-1"></i> Download Barcode
             </button>
-            <button class="btn btn-dark btn-sm rounded-pill" onclick="navigator.clipboard.writeText('${barcodePayload}'); Swal.fire({ title: 'Copied to Clipboard!', text: 'Copied Barcode Code to clipboard!', icon: 'success', confirmButtonColor: '#09C82C', timer: 2000, customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });">
+            <button class="btn btn-dark btn-sm rounded-pill" onclick="navigator.clipboard.writeText('${barcodePayload}'); Swal.fire({ title: 'Copied to Clipboard!', text: 'Copied Barcode Code to clipboard!', icon: 'success', confirmButtonColor: '#6366F1', timer: 2000, customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' }, buttonsStyling: false });">
               <i class="ti ti-copy me-1"></i> Copy Barcode Payload
             </button>
           </div>
@@ -4830,7 +5156,7 @@ export class ScannerController {
         title: 'Barcode Not Detected',
         text: 'Could not detect a valid Barcode/QR Code in the uploaded image. Please try another image.',
         icon: 'error',
-        confirmButtonColor: '#09C82C',
+        confirmButtonColor: '#6366F1',
         customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
         buttonsStyling: false
       });
@@ -4870,7 +5196,7 @@ export class LifetimeAttendanceController {
             title: 'Enter Employee Identifier',
             text: 'Please enter an employee code, universal barcode hash, or name to search.',
             icon: 'info',
-            confirmButtonColor: '#09C82C',
+            confirmButtonColor: '#6366F1',
             customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
             buttonsStyling: false
           });
@@ -4920,7 +5246,7 @@ export class LifetimeAttendanceController {
             title: 'No Barcode Detected',
             text: 'Could not detect a clear barcode from the uploaded image. Please ensure the barcode is sharp and well-lit.',
             icon: 'warning',
-            confirmButtonColor: '#09C82C',
+            confirmButtonColor: '#6366F1',
             customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
             buttonsStyling: false
           });
@@ -5078,7 +5404,7 @@ export class LifetimeAttendanceController {
             </ol>
           </div>`,
           icon: 'info',
-          confirmButtonColor: '#09C82C',
+          confirmButtonColor: '#6366F1',
           customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
           buttonsStyling: false
         });
@@ -5609,8 +5935,14 @@ export class DirectoryController {
                     <i class="ti ti-lock me-1 text-muted"></i> Last: ${emp.end_date || 'Offboarded'}
                   </span>
                 `}
-                <button class="btn btn-sm btn-outline-danger rounded-pill delete-emp-btn flex-shrink-0 d-inline-flex align-items-center justify-content-center py-1 px-2" style="width: 32px; height: 28px;" data-id="${emp.id}" title="Delete Record">
-                  <i class="ti ti-trash"></i>
+                <button class="btn btn-sm btn-outline-danger rounded-circle delete-emp-btn flex-shrink-0 d-inline-flex align-items-center justify-content-center p-0" style="width: 30px; height: 30px;" data-id="${emp.id}" title="Delete Record">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 7l16 0" />
+                    <path d="M10 11l0 6" />
+                    <path d="M14 11l0 6" />
+                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -5705,7 +6037,7 @@ export class DirectoryController {
               title: 'Last Working Date Locked',
               text: `Last working date for ${name} (${code}) recorded as ${result.value.date}. Barcode permission for ${company} is deactivated.`,
               icon: 'success',
-              confirmButtonColor: '#09C82C',
+              confirmButtonColor: '#6366F1',
               customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
               buttonsStyling: false
             });
@@ -5743,7 +6075,7 @@ export class DirectoryController {
               title: 'Deleted Successfully!',
               text: 'The employee record has been permanently removed.',
               icon: 'success',
-              confirmButtonColor: '#09C82C',
+              confirmButtonColor: '#6366F1',
               customClass: {
                 popup: 'rounded-4 shadow-lg border-0',
                 confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold'
@@ -5873,7 +6205,7 @@ export class RazorpayPaymentManager {
                     <div class="text-success text-xs mt-3 fw-semibold"><i class="ti ti-shield-check me-1"></i>Verification credits & passes unlocked for your account.</div>
                   </div>
                 `,
-                confirmButtonColor: '#09C82C',
+                confirmButtonColor: '#6366F1',
                 confirmButtonText: 'Awesome!',
                 customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-success text-white rounded-pill px-4 py-2.5 fw-bold' },
                 buttonsStyling: false
@@ -5888,7 +6220,7 @@ export class RazorpayPaymentManager {
             contact: '9876543210'
           },
           theme: {
-            color: '#09C82C'
+            color: '#6366F1'
           }
         };
 
@@ -5900,7 +6232,7 @@ export class RazorpayPaymentManager {
               title: 'Payment Failed',
               text: failRes.error ? failRes.error.description : 'Payment transaction could not be completed.',
               icon: 'error',
-              confirmButtonColor: '#09C82C',
+              confirmButtonColor: '#6366F1',
               customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
               buttonsStyling: false
             });
@@ -5921,7 +6253,7 @@ export class RazorpayPaymentManager {
           title: 'Payment Error',
           text: err.message || 'Unable to initiate Razorpay checkout.',
           icon: 'error',
-          confirmButtonColor: '#09C82C',
+          confirmButtonColor: '#6366F1',
           customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
           buttonsStyling: false
         });
@@ -5966,6 +6298,8 @@ export class EmployeeApp {
   }
 
   attachModuleNavigation() {
+    const publicHomeSection = document.getElementById('public-home-section');
+    const companyWorkspaceSection = document.getElementById('company-workspace-section');
     const landingSection = document.getElementById('landing-portal-section');
     const attendanceAuthSection = document.getElementById('attendance-auth-portal-section');
     const attendanceSection = document.getElementById('attendance-portal-section');
@@ -5974,6 +6308,8 @@ export class EmployeeApp {
     const employeeDashboardSection = document.getElementById('employee-dashboard-section');
 
     const navLanding = document.getElementById('nav-link-landing');
+    const navWsHome = document.getElementById('nav-link-ws-home');
+    const navPublicHome = document.getElementById('nav-link-public-home');
     const navAttendance = document.getElementById('nav-link-attendance');
     const navVerification = document.getElementById('nav-link-verification');
     const navLifetime = document.getElementById('nav-link-lifetime');
@@ -5992,7 +6328,7 @@ export class EmployeeApp {
     const mainFooter = document.querySelector('footer');
 
     const updateActiveNav = (activeLink) => {
-      [navLanding, navAttendance, navVerification, navLifetime].forEach(link => {
+      [navLanding, navWsHome, navPublicHome, navAttendance, navVerification, navLifetime].forEach(link => {
         if (link) link.classList.remove('active', 'text-primary', 'text-info', 'text-success', 'text-warning');
       });
       if (activeLink) activeLink.classList.add('active');
@@ -6011,86 +6347,91 @@ export class EmployeeApp {
       }
     };
 
-    const showLanding = (isPopState = false) => {
-      if (mainNavbar) mainNavbar.classList.remove('d-none');
-      if (mainFooter) mainFooter.classList.remove('d-none');
-      if (landingSection) landingSection.classList.remove('d-none');
+    const hideAllSections = () => {
+      if (publicHomeSection) publicHomeSection.classList.add('d-none');
+      if (companyWorkspaceSection) companyWorkspaceSection.classList.add('d-none');
+      if (landingSection && landingSection !== publicHomeSection && landingSection !== companyWorkspaceSection) {
+        landingSection.classList.add('d-none');
+      }
       if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
       if (attendanceSection) attendanceSection.classList.add('d-none');
       if (verificationSection) verificationSection.classList.add('d-none');
       if (lifetimeSection) lifetimeSection.classList.add('d-none');
       if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
-      updateActiveNav(navLanding);
-      pushHistory('landing', null, isPopState);
+    };
+
+    const showPublicHome = (isPopState = false) => {
+      if (mainNavbar) mainNavbar.classList.remove('d-none');
+      hideAllSections();
+      if (publicHomeSection) publicHomeSection.classList.remove('d-none');
+      if (mainFooter) mainFooter.classList.remove('d-none');
+      updateActiveNav(navPublicHome || navLanding);
+      CompanyAuthController.renderActiveCompanyBadge();
+      pushHistory('home', null, isPopState);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const showAttendanceAuthPage = (isPopState = false) => {
-      if (mainNavbar) mainNavbar.classList.add('d-none');
+    this.showPublicHome = showPublicHome;
+
+    const showCompanyWorkspace = (isPopState = false) => {
+      if (!AuthManager.isAdmin()) {
+        window.location.href = '/login/company/';
+        return;
+      }
+      if (mainNavbar) mainNavbar.classList.remove('d-none');
+      hideAllSections();
+      if (companyWorkspaceSection) companyWorkspaceSection.classList.remove('d-none');
       if (mainFooter) mainFooter.classList.add('d-none');
-      if (landingSection) landingSection.classList.add('d-none');
-      if (attendanceAuthSection) attendanceAuthSection.classList.remove('d-none');
-      if (attendanceSection) attendanceSection.classList.add('d-none');
-      if (verificationSection) verificationSection.classList.add('d-none');
-      if (lifetimeSection) lifetimeSection.classList.add('d-none');
-      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
-      CompanyAuthController.showPortalSelection();
-      updateActiveNav(navAttendance);
-      pushHistory('attendance-auth', null, isPopState);
+      updateActiveNav(navWsHome || navLanding);
+      CompanyAuthController.renderActiveCompanyBadge();
+      pushHistory('company-workspace', null, isPopState);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    this.showCompanyWorkspace = showCompanyWorkspace;
+
+    const showLanding = (isPopState = false) => {
+      if (AuthManager.isAdmin()) {
+        showCompanyWorkspace(isPopState);
+      } else {
+        showPublicHome(isPopState);
+      }
+    };
+
+    this.showLandingScreen = showLanding;
+
+    const showAttendanceAuthPage = (isPopState = false) => {
+      window.location.href = '/login/company/';
     };
 
     this.showAttendanceAuthPage = showAttendanceAuthPage;
 
     const showAttendance = (isPopState = false) => {
       if (!AuthManager.isAdmin()) {
-        showAttendanceAuthPage(isPopState);
+        window.location.href = '/login/company/';
         return;
       }
       if (mainNavbar) mainNavbar.classList.remove('d-none');
-      if (mainFooter) mainFooter.classList.remove('d-none');
-      if (landingSection) landingSection.classList.add('d-none');
-      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
+      hideAllSections();
       if (attendanceSection) attendanceSection.classList.remove('d-none');
-      if (verificationSection) verificationSection.classList.add('d-none');
-      if (lifetimeSection) lifetimeSection.classList.add('d-none');
-      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
+      if (mainFooter) mainFooter.classList.add('d-none');
       updateActiveNav(navAttendance);
       pushHistory('attendance', null, isPopState);
       AttendanceController.init();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    this.showAttendanceScreenDirect = (isPopState = false) => {
-      if (mainNavbar) mainNavbar.classList.remove('d-none');
-      if (mainFooter) mainFooter.classList.remove('d-none');
-      if (landingSection) landingSection.classList.add('d-none');
-      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
-      if (attendanceSection) attendanceSection.classList.remove('d-none');
-      if (verificationSection) verificationSection.classList.add('d-none');
-      if (lifetimeSection) lifetimeSection.classList.add('d-none');
-      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
-      updateActiveNav(navAttendance);
-      pushHistory('attendance', null, isPopState);
-      AttendanceController.init();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    this.showLandingScreen = showLanding;
+    this.showAttendanceScreenDirect = showAttendance;
 
     const showEmployeeDashboard = (isPopState = false) => {
       if (!AuthManager.isEmployee()) {
-        showAttendanceAuthPage(isPopState);
+        window.location.href = '/login/employee/';
         return;
       }
       if (mainNavbar) mainNavbar.classList.add('d-none');
-      if (mainFooter) mainFooter.classList.remove('d-none');
-      if (landingSection) landingSection.classList.add('d-none');
-      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
-      if (attendanceSection) attendanceSection.classList.add('d-none');
-      if (verificationSection) verificationSection.classList.add('d-none');
-      if (lifetimeSection) lifetimeSection.classList.add('d-none');
+      hideAllSections();
       if (employeeDashboardSection) employeeDashboardSection.classList.remove('d-none');
+      if (mainFooter) mainFooter.classList.remove('d-none');
       pushHistory('employee-dashboard', null, isPopState);
       EmployeePortalController.loadEmployeeDashboard();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -6100,35 +6441,29 @@ export class EmployeeApp {
 
     const showVerification = (isPopState = false) => {
       if (!AuthManager.isAdmin()) {
-        showAttendanceAuthPage(isPopState);
+        window.location.href = '/login/company/';
         return;
       }
       if (mainNavbar) mainNavbar.classList.remove('d-none');
-      if (mainFooter) mainFooter.classList.remove('d-none');
-      if (landingSection) landingSection.classList.add('d-none');
-      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
-      if (attendanceSection) attendanceSection.classList.add('d-none');
+      hideAllSections();
       if (verificationSection) verificationSection.classList.remove('d-none');
-      if (lifetimeSection) lifetimeSection.classList.add('d-none');
-      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
+      if (mainFooter) mainFooter.classList.add('d-none');
       updateActiveNav(navVerification);
       pushHistory('verification', null, isPopState);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    this.showVerification = showVerification;
+
     const showLifetimeAttendance = (empCodeToLoad = null, isPopState = false) => {
       if (!AuthManager.isAdmin()) {
-        showAttendanceAuthPage(isPopState);
+        window.location.href = '/login/company/';
         return;
       }
       if (mainNavbar) mainNavbar.classList.remove('d-none');
-      if (mainFooter) mainFooter.classList.remove('d-none');
-      if (landingSection) landingSection.classList.add('d-none');
-      if (attendanceAuthSection) attendanceAuthSection.classList.add('d-none');
-      if (attendanceSection) attendanceSection.classList.add('d-none');
-      if (verificationSection) verificationSection.classList.add('d-none');
+      hideAllSections();
       if (lifetimeSection) lifetimeSection.classList.remove('d-none');
-      if (employeeDashboardSection) employeeDashboardSection.classList.add('d-none');
+      if (mainFooter) mainFooter.classList.add('d-none');
       updateActiveNav(navLifetime);
       pushHistory('lifetime', empCodeToLoad, isPopState);
       LifetimeAttendanceController.init();
@@ -6141,8 +6476,18 @@ export class EmployeeApp {
     this.showLifetimeAttendanceScreen = showLifetimeAttendance;
 
     // Attach click events
-    if (brandLink) brandLink.addEventListener('click', () => showLanding(false));
+    if (brandLink) {
+      brandLink.addEventListener('click', () => {
+        if (AuthManager.isAdmin()) {
+          showCompanyWorkspace(false);
+        } else {
+          showPublicHome(false);
+        }
+      });
+    }
     if (navLanding) navLanding.addEventListener('click', () => showLanding(false));
+    if (navWsHome) navWsHome.addEventListener('click', () => showCompanyWorkspace(false));
+    if (navPublicHome) navPublicHome.addEventListener('click', () => showPublicHome(false));
     if (navAttendance) navAttendance.addEventListener('click', () => showAttendance(false));
     if (navVerification) navVerification.addEventListener('click', () => showVerification(false));
     if (navLifetime) navLifetime.addEventListener('click', () => showLifetimeAttendance(null, false));
@@ -6163,11 +6508,11 @@ export class EmployeeApp {
         pushHistory('verification', null, false);
       });
     }
-    if (backLandingBtn) backLandingBtn.addEventListener('click', () => showLanding(false));
+    if (backLandingBtn) backLandingBtn.addEventListener('click', () => showCompanyWorkspace(false));
     if (backAuthLandingBtn) backAuthLandingBtn.addEventListener('click', () => showLanding(false));
-    if (backLifetimeBtn) backLifetimeBtn.addEventListener('click', () => showLanding(false));
+    if (backLifetimeBtn) backLifetimeBtn.addEventListener('click', () => showCompanyWorkspace(false));
     if (backDashboardBtn) {
-      backDashboardBtn.addEventListener('click', () => showLanding(false));
+      backDashboardBtn.addEventListener('click', () => showCompanyWorkspace(false));
     }
 
     // Unified Route Transition Handler for Browser History & Hash Navigation
@@ -6177,6 +6522,14 @@ export class EmployeeApp {
       const empCode = eventState?.empCode || urlParams.get('code');
 
       switch (page) {
+        case 'company-workspace':
+        case 'workspace':
+          showCompanyWorkspace(true);
+          break;
+        case 'home':
+        case 'public':
+          showPublicHome(true);
+          break;
         case 'employee-dashboard':
         case 'employee':
           showEmployeeDashboard(true);
@@ -6185,7 +6538,7 @@ export class EmployeeApp {
           showAttendance(true);
           break;
         case 'attendance-auth':
-          showAttendanceAuthPage(true);
+          window.location.href = '/login/company/';
           break;
         case 'verification':
           showVerification(true);
@@ -6213,12 +6566,16 @@ export class EmployeeApp {
     const initialParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
     const initialCode = initialParams.get('code');
 
-    if (initialHash === 'employee-dashboard' || initialHash === 'employee') {
+    if (initialHash === 'company-workspace' || initialHash === 'workspace') {
+      showCompanyWorkspace(true);
+    } else if (initialHash === 'home' || initialHash === 'public') {
+      showPublicHome(true);
+    } else if (initialHash === 'employee-dashboard' || initialHash === 'employee') {
       showEmployeeDashboard(true);
     } else if (initialHash === 'attendance') {
       showAttendance(true);
     } else if (initialHash === 'attendance-auth') {
-      showAttendanceAuthPage(true);
+      window.location.href = '/login/company/';
     } else if (initialHash === 'verification') {
       showVerification(true);
     } else if (initialHash === 'generate') {
@@ -6227,7 +6584,11 @@ export class EmployeeApp {
     } else if (initialHash === 'lifetime') {
       showLifetimeAttendance(initialCode, true);
     } else {
-      window.history.replaceState({ page: 'landing' }, '', window.location.pathname + (window.location.search || ''));
+      if (AuthManager.isAdmin()) {
+        showCompanyWorkspace(true);
+      } else {
+        showPublicHome(true);
+      }
     }
   }
 
@@ -6299,7 +6660,7 @@ export class EmployeeApp {
           title: 'Saved to Library!',
           text: 'Barcode pass EMP-2026-VERIFIED saved to quick library.',
           icon: 'success',
-          confirmButtonColor: '#09C82C',
+          confirmButtonColor: '#6366F1',
           customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
           buttonsStyling: false
         });
@@ -6331,7 +6692,7 @@ export class EmployeeApp {
             title: 'Copied to Clipboard!',
             text: 'Copied barcode payload "EMP-2026-VERIFIED" to clipboard.',
             icon: 'success',
-            confirmButtonColor: '#09C82C',
+            confirmButtonColor: '#6366F1',
             timer: 2000,
             customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
             buttonsStyling: false
@@ -6341,7 +6702,7 @@ export class EmployeeApp {
             title: 'Barcode Payload',
             text: 'EMP-2026-VERIFIED',
             icon: 'info',
-            confirmButtonColor: '#09C82C',
+            confirmButtonColor: '#6366F1',
             customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold' },
             buttonsStyling: false
           });
@@ -6950,7 +7311,7 @@ export class EmployeeApp {
           title: 'Last Working Date Locked',
           text: `Last working date for ${name} (${code}) recorded as ${result.value.date}. Barcode permission for ${company} is deactivated.`,
           icon: 'success',
-          confirmButtonColor: '#09C82C',
+          confirmButtonColor: '#6366F1',
           customClass: { popup: 'rounded-4 shadow-lg border-0', confirmButton: 'btn btn-primary rounded-pill px-4 py-2.5 fw-bold' },
           buttonsStyling: false
         });

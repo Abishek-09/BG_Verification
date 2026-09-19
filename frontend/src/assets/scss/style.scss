@@ -1,4 +1,3 @@
-
 @import "@tabler/icons-webfont/dist/tabler-icons.min.css";
 
 // Import Bootstrap functions first
@@ -10,5 +9,6 @@
 // Import Bootstrap
 @import "bootstrap/scss/bootstrap";
 
-// Custom styles
+// Custom styles & micro-animations
 @import "./custom";
+@import "./animations";

@@ -129,11 +129,11 @@ model Attendance {
   checkOutTime     DateTime? @map("check_out_time") @db.Timestamptz
   duration         String?   @db.VarChar(50)
   verificationType String?   @default("Barcode Scanner") @map("verification_type") @db.VarChar(100)
-  location         String?   @default("Front Desk Kiosk") @db.VarChar(150)
-  deviceName       String?   @default("Camera Barcode Kiosk") @map("device_name") @db.VarChar(150)
+  location         String?   @default("Front Desk") @db.VarChar(150)
+  deviceName       String?   @default("Camera Barcode Scanner") @map("device_name") @db.VarChar(150)
   terminalSn       String?   @map("terminal_sn") @db.VarChar(100)
   status           String    @default("Present") @db.VarChar(50)
-  workMode         String    @default("On-Site Kiosk") @map("work_mode") @db.VarChar(100)
+  workMode         String    @default("On-Site Scanner") @map("work_mode") @db.VarChar(100)
   notes            String?   @db.Text
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
   person           Person?   @relation(fields: [personId], references: [id], onDelete: Cascade)

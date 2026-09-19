@@ -1,6 +1,6 @@
 // =====================================================================
 // Background Verification System - Express + Socket.IO Server
-// Camera-Based Barcode Attendance Kiosk & Employee Verification API
+// Camera-Based Barcode Attendance & Employee Verification API
 // =====================================================================
 
 require('dotenv').config();
@@ -76,7 +76,7 @@ server.listen(PORT, async () => {
   console.log(`🚀 Verification & Attendance Server running on http://localhost:${PORT}`);
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/v1`);
   console.log(`🔌 Socket.IO WebSocket server active on ws://localhost:${PORT}`);
-  console.log(`📷 Camera Barcode Kiosk Endpoint active on /api/v1/attendance/barcode-punch`);
+  console.log(`📷 Camera Barcode Scanner Endpoint active on /api/v1/attendance/barcode-punch`);
   console.log(`=====================================================`);
   try {
     await prisma.$connect();

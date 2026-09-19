@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Workforce Verification & Attendance System - Complete Flow & UI Redesign Blueprint</title>
+
+  <!-- Google Fonts & Tabler Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #09C82C;
+      --primary-dark: #079c23;
+      --primary-subtle: #e6f9ea;
+      --info: #0284c7;
+      --purple: #7c3aed;
+      --amber: #d97706;
+      --danger: #dc2626;
+      --dark: #0f172a;
+      --slate: #334155;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg);
+      color: var(--slate);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .doc-container {
+      max-width: 980px;
+      margin: 40px auto;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      padding: 44px;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--dark);
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .doc-header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 36px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--primary);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--dark);
+    }
+
+    .flow-box {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .flow-box.accent-green { border-left: 5px solid var(--primary); }
+    .flow-box.accent-blue { border-left: 5px solid var(--info); }
+    .flow-box.accent-purple { border-left: 5px solid var(--purple); }
+    .flow-box.accent-amber { border-left: 5px solid var(--amber); }
+    .flow-box.accent-red { border-left: 5px solid var(--danger); }
+
+    .step-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin: 12px 0 20px;
+    }
+
+    .custom-table th {
+      background: #f1f5f9;
+      color: var(--dark);
+      font-weight: 700;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+    }
+
+    .custom-table td {
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      vertical-align: top;
+    }
+
+    .code-tag {
+      font-family: var(--font-code);
+      background: #f1f5f9;
+      color: #0284c7;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 20px;
+    }
+
+    .badge-pill.green { background: #dcfce7; color: #15803d; }
+    .badge-pill.blue { background: #e0f2fe; color: #0369a1; }
+    .badge-pill.purple { background: #f3e8ff; color: #7e22ce; }
+    .badge-pill.amber { background: #fef3c7; color: #b45309; }
+
+    @media print {
+      body {
+        background: #ffffff;
+        color: #000000;
+        font-size: 11px;
+      }
+
+      .doc-container {
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        max-width: 100%;
+      }
+
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+
+      .flow-box, .custom-table {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 12mm 14mm 12mm 14mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="doc-container">
+
+    <!-- Header -->
+    <div class="doc-header">
+      <span class="badge-pill green mb-2 fw-bold"><i class="ti ti-route me-1"></i> MASTER ARCHITECTURAL SPECIFICATION</span>
+      <h1 class="fw-extrabold text-dark mt-2 mb-1" style="font-size: 26px;">Universal Workforce Verification & Attendance System</h1>
+      <h3 class="text-muted fw-semibold mb-3" style="font-size: 14px;">Complete System Flow, Screen Transitions & UI Redesign Blueprint</h3>
+      <div class="d-flex justify-content-center gap-3 text-xs text-muted">
+        <span><strong>Version:</strong> 2.4 Production</span> &bull;
+        <span><strong>Frontend:</strong> Vanilla JS / Bootstrap 5.3 / SCSS</span> &bull;
+        <span><strong>Backend:</strong> Express 5 / Socket.IO</span> &bull;
+        <span><strong>Database:</strong> PostgreSQL 18 (Prisma ORM)</span>
+      </div>
+    </div>
+
+    <!-- 1. EXECUTIVE SUMMARY & TECH STACK -->
+    <div class="section-title"><i class="ti ti-cpu text-primary"></i> 1. Executive Summary & Full-Stack Architecture</div>
+    <p class="text-muted mb-3">
+      This enterprise web application provides a unified, cross-company identity and workforce attendance ecosystem. It links an employee's verified career history, past salaries, credentials, and real-time attendance punches using universal 1D Code 128 barcodes and 2D QR codes.
+    </p>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <div class="flow-box accent-blue h-100 mb-0">
+          <h6 class="fw-bold text-dark mb-1"><i class="ti ti-browser text-info me-1"></i> Client Presentation (SPA)</h6>
+          <p class="text-muted text-xs mb-0">Single Page Application driven by HTML5 History API & hash routing in <code>EmployeeApp</code>. Interactive scanner via <code>Html5Qrcode</code>, dynamic barcodes via <code>JsBarcode</code> and <code>qrcode</code>.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="flow-box accent-purple h-100 mb-0">
+          <h6 class="fw-bold text-dark mb-1"><i class="ti ti-server text-purple me-1"></i> Gateway & WebSockets</h6>
+          <p class="text-muted text-xs mb-0">Node.js Express 5 server running on port 5000 with <code>/api/v1/</code> REST endpoints, JWT authentication, and bidirectional <code>Socket.IO</code> WebSocket stream for live attendance punches.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="flow-box accent-green h-100 mb-0">
+          <h6 class="fw-bold text-dark mb-1"><i class="ti ti-database text-success me-1"></i> Persistence Tier</h6>
+          <p class="text-muted text-xs mb-0">PostgreSQL 18 database managed with Prisma ORM client. ACID-compliant tables for identity, dynamic employment history, punches, company shift policies, and admin accounts.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. USER PERSONAS & CORE JOURNEYS -->
+    <div class="section-title page-break"><i class="ti ti-users-group text-primary"></i> 2. Core User Personas & Workflows</div>
+
+    <!-- Persona 1 -->
+    <div class="flow-box accent-green">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 class="fw-bold text-dark mb-0"><span class="step-badge">1</span> Persona 1: Company / HR Administrator Flow</h6>
+        <span class="badge-pill green">Admin Journey</span>
+      </div>
+      <p class="text-muted text-xs mb-2">Manages workforce onboarding, credential generation, shift policies, and offboarding.</p>
+      <ol class="text-xs text-muted ps-3 mb-0">
+        <li class="mb-1"><strong>Authentication:</strong> Visits <code>#auth</code>, signs in with username/email or uses 1-Click Demo buttons (<em>NexGen Cloud Systems, TCS, Infosys</em>). Receives JWT admin token.</li>
+        <li class="mb-1"><strong>New Employee Onboarding:</strong> Accesses <code>#verification</code>, fills employee demographics, adds previous company cards (with auto-calculated tenure), and uploads passport photo & salary slips.</li>
+        <li class="mb-1"><strong>Universal Barcode Issuance:</strong> System submits to <code>/api/v1/persons</code> and generates a dynamic <strong>Code 128 barcode</strong> and <strong>QR Code</strong> ID pass ready for printing or SVG/PNG download.</li>
+        <li class="mb-1"><strong>Shift & Grace Period Management:</strong> Configures shift start time (e.g. <code>09:00:00</code>) and grace period (e.g. <code>30 min</code>) in the settings modal.</li>
+        <li><strong>Offboarding & Lock:</strong> Enters employee final working date via "Enter Last Date". The record is permanently locked (<code>is_active = false</code>), revoking attendance scanner credentials with 403 Forbidden.</li>
+      </ol>
+    </div>
+
+    <!-- Persona 2 -->
+    <div class="flow-box accent-blue">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 class="fw-bold text-dark mb-0"><span class="step-badge" style="background:var(--info);">2</span> Persona 2: Front Desk Optical Scanner Flow</h6>
+        <span class="badge-pill blue">Physical / Device Terminal</span>
+      </div>
+      <p class="text-muted text-xs mb-2">Unattended front-desk station running on a tablet, PC, or optical scanner terminal.</p>
+      <ol class="text-xs text-muted ps-3 mb-0">
+        <li class="mb-1"><strong>Webcam Activation:</strong> Scanner opens <code>#attendance</code>, activating the webcam feed with animated laser scanning overlay.</li>
+        <li class="mb-1"><strong>Badge Presentation:</strong> Employee holds digital badge or printed card in front of camera.</li>
+        <li class="mb-1"><strong>Smart Toggle & Verification:</strong> Evaluates today's records: if first punch &rarr; <strong>Check-In</strong>; if second punch &rarr; <strong>Check-Out</strong>. Computes shift duration.</li>
+        <li class="mb-1"><strong>Debounce & Audio Feedback:</strong> Plays audio chime and triggers 3-second cooldown to avoid duplicate scans.</li>
+        <li><strong>Real-time Broadcast:</strong> Emits WebSocket event <code>attendance:punch</code>, updating the HR manager's live activity stream instantly.</li>
+      </ol>
+    </div>
+
+    <!-- Persona 3 -->
+    <div class="flow-box accent-purple">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 class="fw-bold text-dark mb-0"><span class="step-badge" style="background:var(--purple);">3</span> Persona 3: Employee Self-Service Flow</h6>
+        <span class="badge-pill purple">Employee Self-Service</span>
+      </div>
+      <p class="text-muted text-xs mb-2">Telecommuting and on-site staff managing daily shifts and attendance records.</p>
+      <ol class="text-xs text-muted ps-3 mb-0">
+        <li class="mb-1"><strong>Sign In:</strong> Logs in with Employee Code (<code>EMP-001</code>) and PIN (<code>1234</code>) at <code>#auth</code>.</li>
+        <li class="mb-1"><strong>Remote WFH Check-In / Out:</strong> Clicks one-touch daily punch with live shift duration timer and cutoff window status.</li>
+        <li class="mb-1"><strong>Annual Summary:</strong> Views annual metric cards: Total Working Days, Present Days, Absent Days, Paid Leave Quota (24 days), Leaves Taken, Leaves Remaining.</li>
+        <li><strong>Historical Records:</strong> Browses personal chronological punch history and work mode tags (Remote vs Office).</li>
+      </ol>
+    </div>
+
+    <!-- 3. THE 6 PRIMARY UI SCREENS & NAVIGATION MAP -->
+    <div class="section-title page-break"><i class="ti ti-layout-grid text-primary"></i> 3. The 6 Primary UI Screens & ID Mapping</div>
+    <p class="text-muted text-xs mb-3">
+      The following table maps every UI screen in <span class="code-tag">src/index.html</span> and the controllers in <span class="code-tag">src/assets/js/employee-system.js</span> that bind to them:
+    </p>
+
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">Route / Hash</th>
+          <th style="width: 26%;">HTML Section & Element IDs</th>
+          <th style="width: 25%;">Associated JS Controller</th>
+          <th style="width: 35%;">UI Components & Features</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="code-tag">#landing</span></td>
+          <td><code>#landing-portal-section</code><br><code>#card-launch-generate</code><br><code>#card-launch-attendance</code><br><code>#steps-guide-section</code></td>
+          <td><code>EmployeeApp</code></td>
+          <td>Public gateway hub with 4 interactive launch cards, scroll-observed 4-step progress tracker, and FAQ accordion.</td>
+        </tr>
+        <tr>
+          <td><span class="code-tag">#auth</span></td>
+          <td><code>#attendance-auth-portal-section</code><br><code>#form-company-login</code><br><code>#form-company-register</code><br><code>#form-employee-login</code></td>
+          <td><code>CompanyAuthController</code><br><code>EmployeePortalController</code></td>
+          <td>Role selection cards (Admin / Employee / WFH), 1-Click demo logins (NexGen, TCS, Infosys), admin registration tab.</td>
+        </tr>
+        <tr>
+          <td><span class="code-tag">#verification</span></td>
+          <td><code>#employee-portal</code><br><code>#screen-generate</code><br><code>#employee-form</code><br><code>#badge-result-container</code><br><code>#screen-import</code></td>
+          <td><code>EmployeeFormManager</code><br><code>BarcodeBadgeManager</code><br><code>DirectoryController</code></td>
+          <td>Onboarding form with dynamic past experience cards, file upload inputs, SVG/PNG barcode badge preview, search dossier, and employee directory with offboarding lock.</td>
+        </tr>
+        <tr>
+          <td><span class="code-tag">#attendance</span></td>
+          <td><code>#attendance-portal-section</code><br><code>#attendance-camera-scanner-wrapper</code><br><code>#live-stream-records-container</code></td>
+          <td><code>AttendanceController</code><br><code>HardwareDeviceController</code></td>
+          <td>Html5Qrcode optical webcam scanner, auto Check-In/Out toggle, live WebSocket punch activity ticker, biometric hardware pairing modal, shift policy modal.</td>
+        </tr>
+        <tr>
+          <td><span class="code-tag">#employee-dashboard</span></td>
+          <td><code>#employee-dashboard-section</code><br><code>#btn-emp-dash-punch</code><br><code>#annual-attendance-summary-container</code></td>
+          <td><code>EmployeePortalController</code></td>
+          <td>Personal employee dashboard: 1-click WFH remote check-in, real-time clock, annual attendance & leave quota analytics (24 days), personal punch logs table.</td>
+        </tr>
+        <tr>
+          <td><span class="code-tag">#lifetime</span></td>
+          <td><code>#lifetime-attendance-portal-section</code><br><code>#lifetime-search-input</code><br><code>#lifetime-tenure-timeline</code></td>
+          <td><code>LifetimeAttendanceController</code></td>
+          <td>Lifetime multi-company career audit: code search, tenure timeline connecting past and current employers, month-wise attendance heatmap, export to PDF/CSV.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 4. MODALS SPECIFICATION -->
+    <div class="section-title"><i class="ti ti-app-window text-primary"></i> 4. Modals Specification</div>
+    <div class="row g-2 mb-3">
+      <div class="col-md-6">
+        <div class="flow-box mb-0 p-3">
+          <strong class="d-block text-dark text-xs mb-1"><code>#profileModal</code> (Employee Profile)</strong>
+          <p class="text-muted text-xs mb-0">Modal dialog displaying comprehensive demographic dossier, verified checkmark, multi-company salary history, document links, and offboarding status.</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="flow-box mb-0 p-3">
+          <strong class="d-block text-dark text-xs mb-1"><code>#modal-shift-settings</code> (Shift Policy)</strong>
+          <p class="text-muted text-xs mb-0">Form to configure organization shift start time (e.g. <code>09:00:00</code>) and grace period minutes (default <code>30</code>). Saved to PostgreSQL <code>company_settings</code>.</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="flow-box mb-0 p-3">
+          <strong class="d-block text-dark text-xs mb-1"><code>#modal-wfh-checkin</code> (Remote Punch)</strong>
+          <p class="text-muted text-xs mb-0">Modal for WFH check-in/out with live server time, cutoff time indicator, and grace period status badge.</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="flow-box mb-0 p-3">
+          <strong class="d-block text-dark text-xs mb-1"><code>#modal-hardware-device-pairing</code> (Biometric Devices)</strong>
+          <p class="text-muted text-xs mb-0">Scans and pairs external USB/Network optical biometric terminals over WebSockets with test machine punch execution.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. BACKEND API & WEBSOCKET SPECIFICATION -->
+    <div class="section-title page-break"><i class="ti ti-api text-primary"></i> 5. Complete Backend API & Real-Time WebSockets</div>
+    <p class="text-muted text-xs mb-2">Base URL: <span class="code-tag">http://localhost:5000/api/v1</span></p>
+
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th style="width: 12%;">Method</th>
+          <th style="width: 32%;">Endpoint</th>
+          <th style="width: 26%;">Payload / Parameters</th>
+          <th style="width: 30%;">Description & Response</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge-pill green">POST</span></td>
+          <td><code>/auth/admin-login</code></td>
+          <td><code>identifier</code>, <code>password</code></td>
+          <td>Authenticates company admin, returns JWT token and company payload.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill green">POST</span></td>
+          <td><code>/auth/admin-register</code></td>
+          <td><code>company_name</code>, <code>username</code>, <code>email</code>, <code>password</code>, <code>state</code></td>
+          <td>Registers new company account and default shift configuration.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill green">POST</span></td>
+          <td><code>/auth/employee-login</code></td>
+          <td><code>employee_code</code>, <code>pin</code></td>
+          <td>Authenticates employee for self-service portal.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill blue">GET</span></td>
+          <td><code>/persons</code></td>
+          <td>Query: <code>company_name</code>, <code>status</code></td>
+          <td>Retrieves employee directory with employment details.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill green">POST</span></td>
+          <td><code>/persons</code></td>
+          <td><code>name</code>, <code>email</code>, <code>mobile</code>, <code>company_name</code>, <code>monthly_salary</code>, <code>experience</code></td>
+          <td>Creates person, details, departments, and generates unique barcode hash.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill green">POST</span></td>
+          <td><code>/employees/:id/deactivate</code></td>
+          <td><code>end_date</code>, <code>remarks</code></td>
+          <td>Offboards employee, permanently locks record, sets <code>is_active = false</code>.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill green">POST</span></td>
+          <td><code>/attendance/barcode-punch</code></td>
+          <td><code>barcode_data</code>, <code>terminal_sn</code>, <code>location</code></td>
+          <td>Validates barcode status, toggles Check-In/Out, broadcasts via WebSocket.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill green">POST</span></td>
+          <td><code>/attendance/wfh-check-in</code></td>
+          <td><code>employee_code</code>, <code>notes</code>, <code>work_mode</code></td>
+          <td>Remote employee self-service check-in/out.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill blue">GET</span></td>
+          <td><code>/attendance/my-annual-summary</code></td>
+          <td>Query: <code>year</code> (e.g. 2026)</td>
+          <td>Returns annual totals (Present, Absent, Leave quota, Leaves remaining).</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill blue">GET</span></td>
+          <td><code>/attendance/settings</code></td>
+          <td>Query: <code>company_name</code></td>
+          <td>Returns shift start time and grace period minutes.</td>
+        </tr>
+        <tr>
+          <td><span class="badge-pill purple">WS</span></td>
+          <td><code>ws://localhost:5000</code></td>
+          <td>Event: <code>attendance:punch</code></td>
+          <td>Real-time broadcast dispatched to Scanner activity stream on every punch.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 6. UI REDESIGN GUIDELINES -->
+    <div class="section-title"><i class="ti ti-palette text-primary"></i> 6. UI Redesign Guidelines & Modernization Strategy</div>
+
+    <div class="flow-box accent-green mb-3">
+      <h6 class="fw-bold text-dark mb-1"><i class="ti ti-alert-triangle text-warning me-1"></i> Critical Rule: Preserve Element IDs</h6>
+      <p class="text-muted text-xs mb-0">
+        All frontend event listeners and DOM manipulation in <code>src/assets/js/employee-system.js</code> attach directly to HTML element IDs. When modifying or replacing HTML tags, classes, or templates, <strong>keep all existing <code>id</code> attributes intact</strong> to guarantee that all buttons, forms, webcam scanners, and modals continue to function seamlessly.
+      </p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="flow-box accent-blue mb-0">
+          <h6 class="fw-bold text-dark mb-1">Layout Modernization</h6>
+          <ul class="text-xs text-muted ps-3 mb-0">
+            <li class="mb-1"><strong>Sidebar App Shell:</strong> Transition from vertical scroll sections into a modern collapsible sidebar (Gateway, Directory, Onboarding, Attendance, Analytics) with a fixed utility topbar.</li>
+            <li class="mb-1"><strong>Card Elevation & Glassmorphism:</strong> Adopt <code>1px solid rgba(226,232,240,0.8)</code> borders, soft shadows (<code>shadow-sm</code>, <code>shadow-md</code>), and 16px corner radius.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="flow-box accent-purple mb-0">
+          <h6 class="fw-bold text-dark mb-1">Visual Polish & Typography</h6>
+          <ul class="text-xs text-muted ps-3 mb-0">
+            <li class="mb-1"><strong>Typography:</strong> Use <strong>Plus Jakarta Sans</strong> for headings, <strong>Inter</strong> for clean data tables, and <strong>JetBrains Mono</strong> for barcode strings and codes.</li>
+            <li class="mb-1"><strong>Scanner Dark Mode:</strong> Implement a high-contrast dark terminal mode for the camera scanner with glowing cyan scanlines and punch confirmations.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-4 pt-3 border-top text-center text-muted text-xs">
+      <p class="mb-0"><strong>Universal Workforce Verification & Attendance System</strong> &bull; Complete System Flow & UI Redesign Guide</p>
+      <p class="mb-0">&copy; 2026 Enterprise Workforce Systems. All rights reserved.</p>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -437,7 +437,7 @@ exports.deactivateEmployee = async (req, res) => {
 
     const formatted = formatPersonRecord(updatedPerson);
 
-    // 4. Emit Socket.IO event to update connected kiosks & dashboard in real-time
+    // 4. Emit Socket.IO event to update connected devices & dashboard in real-time
     const io = req.app ? req.app.get('io') : null;
     if (io) {
       io.emit('employee:deactivated', {
@@ -463,6 +463,110 @@ exports.deactivateEmployee = async (req, res) => {
       success: false,
       message: 'Server error deactivating employee.',
       error: error.message
+    });
+  }
+};
+
+// 7. Update Employee Work Mode (Office / Remote / Hybrid)
+exports.updateEmployeeWorkMode = async (req, res) => {
+  try {
+    const { employee_code, employee_id, id, work_mode, shift_start_time, grace_period_minutes } = req.body || {};
+    const targetCode = String(employee_code || employee_id || id || req.params.id || '').trim();
+
+    if (!targetCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee Code or ID is required to update work mode.'
+      });
+    }
+
+    const validModes = ['Office', 'Remote', 'Hybrid'];
+    if (!work_mode || !validModes.includes(work_mode)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid work mode "${work_mode}". Allowed modes: ${validModes.join(', ')}.`
+      });
+    }
+
+    // Resolve person record
+    let person = null;
+    let detail = await prisma.personDetails.findFirst({
+      where: {
+        OR: [
+          { employeeCode: targetCode },
+          { employeeCode: targetCode.toUpperCase() },
+          { barcodeData: targetCode }
+        ]
+      },
+      include: { person: true }
+    });
+
+    if (detail && detail.person) {
+      person = detail.person;
+    } else if (!isNaN(targetCode)) {
+      person = await prisma.person.findUnique({
+        where: { id: BigInt(targetCode) },
+        include: { personDetails: true }
+      });
+    }
+
+    if (!person) {
+      return res.status(404).json({
+        success: false,
+        message: `Employee record not found for code/ID "${targetCode}".`
+      });
+    }
+
+    // Update workLocation across all active details for this person
+    await prisma.personDetails.updateMany({
+      where: { personId: person.id },
+      data: {
+        workLocation: work_mode
+      }
+    });
+
+    // Refetch complete updated record
+    const updatedPerson = await prisma.person.findUnique({
+      where: { id: person.id },
+      include: {
+        personDepartments: { include: { department: true } },
+        personRoles: { include: { role: true } },
+        personDetails: {
+          include: {
+            personDepartment: { include: { department: true } },
+            personRole: { include: { role: true } }
+          }
+        }
+      }
+    });
+
+    const formatted = formatPersonRecord(updatedPerson);
+
+    // Emit Socket.IO event to update connected devices & portal in real-time
+    const io = req.app ? req.app.get('io') : null;
+    if (io) {
+      io.emit('employee:work-mode-updated', {
+        id: formatted.id,
+        employee_code: formatted.employee_code,
+        name: formatted.name,
+        work_location: work_mode,
+        shift_start_time: shift_start_time || null,
+        grace_period_minutes: grace_period_minutes || null
+      });
+    }
+
+    console.log(`💼 [WORK MODE UPDATED] Employee "${formatted.name}" (${formatted.employee_code}) -> ${work_mode}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `Work mode for ${formatted.name} (${formatted.employee_code}) successfully changed to ${work_mode}.`,
+      data: formatted
+    });
+  } catch (error) {
+    console.error('Error updating employee work mode:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error updating employee work mode: ' + error.message
     });
   }
 };
